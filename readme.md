@@ -12,3 +12,8 @@ Wymagania Bezpieczeństwa:
 -Komunikacja z interfejsami REST jest uwierzytelniana tokenami JWT
 -Uwierzytelnianie aplikacji podłączających się do kolejek z wykorzystaniem certyfikatów
 -Szyfrowanie danych wrażliwych w bazie danych
+
+Architektura projektu:
+-Backend : Django z dodatkiem Django Rest Framework
+-Broker : Mosquitto
+-Baza danych : PostgreSQL
