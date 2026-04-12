@@ -30,8 +30,14 @@ class SensorData(models.Model):
     value = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True)
     
+    def __str__(self):
+        return f"{self.device.name} - {self.value} at {self.timestamp}"
+    
 class DeviceAction(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     action_type = models.CharField(max_length=50)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.device.name} - {self.action_type} by {self.user} at {self.timestamp}"
