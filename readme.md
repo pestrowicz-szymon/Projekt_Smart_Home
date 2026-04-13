@@ -1,12 +1,14 @@
 # Projekt grupowy - System Smart Home
 
 ## Wymagania funkcjonalne:
+
 - Zdalne monitorowanie czujników (np. temperatury, ruchu).
 - Zdalne sterowanie elementami wykonawczymi (np. włączanie światła, zamknięcie zamka).
 - Zarządzanie domownikami (dodawanie/usuwanie użytkowników, przypisywanie ról).
 - Powiadomienia o zdarzeniach krytycznych (np. wykrycie dymu).
 
 ## Wymagania Bezpieczeństwa:
+
 - Komunikacja z wykorzystaniem interfejsów REST wykorzystujących połączenie HTTPS
 - Kolejka komunikatów zapewniających szyfrowanie przesyłanych danych w warstwie transportowej
 - Komunikacja z interfejsami REST jest uwierzytelniana tokenami JWT
@@ -17,6 +19,8 @@
 - Izolacja komponentów
 
 ## Architektura projektu:
+
 - Backend : Django z dodatkiem Django Rest Framework
+- Frontend: SvelteKit
 - Broker : Mosquitto
 - Baza danych : PostgreSQL
