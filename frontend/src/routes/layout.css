@@ -1,2 +1,12 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
+
+@layer base {
+	:root {
+		--font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+	}
+
+	html {
+		font-family: var(--font-sans);
+	}
+}

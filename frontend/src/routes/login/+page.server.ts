@@ -1,10 +1,14 @@
 // src/routes/login/+page.server.ts
 import { redirect, fail } from '@sveltejs/kit';
 
+export function load() {
+	return {};
+}
+
 export const actions = {
 	default: async ({ request, cookies, fetch }) => {
 		const data = await request.formData();
-		const res = await fetch('http://backend/api/auth/login', {
+		const res = await fetch('http://127.0.0.1:8000/api/users/login', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -23,6 +27,6 @@ export const actions = {
 			maxAge: 60 * 60 * 24 // 1 day
 		});
 
-		redirect(303, '/');
+		throw redirect(303, '/');
 	}
 };

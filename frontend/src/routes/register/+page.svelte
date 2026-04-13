@@ -1,32 +1,47 @@
 <script>
-	import { resolve } from '$app/paths';
-
+  import { resolve } from '$app/paths';
   let { form } = $props();
+
 </script>
 
 <svelte:head>
-  <title>Login</title>
+  <title>Register</title>
 </svelte:head>
 
 <div class="login-shell">
   <form method="POST" class="login-card">
     <h1>Smart Home Systems</h1>
-    <p>Use your Smart Home account to continue.</p>
+    <p>Register for a new account.</p>
 
     <label>
-      <input name="username" autocomplete="username" required placeholder="Username"/>
+      <input name="username" autocomplete="username" required placeholder="Username" />
     </label>
 
     <label>
-      <input name="password" type="password" autocomplete="current-password" required placeholder="Password"/>
+      <input name="email" type="email" placeholder="Email" required />
     </label>
+
+    <label>
+      <input name="password" type="password" autocomplete="new-password" required placeholder="Password" />
+    </label>
+
+    <label>
+      <input
+        name="confirm_password"
+        type="password"
+        autocomplete="new-password"
+        required
+        placeholder="Confirm Password"
+      />
+    </label>
+      
 
     {#if form?.error}
       <p class="error">{form.error}</p>
     {/if}
 
-    <button type="submit">Login</button>
-    <a class="sign-up" href={resolve('/register')}>Sign up</a>
+    <button type="submit">Register</button>
+    <a class="sign-up" href={resolve('/login')}>Already have an account? Login</a>
   </form>
 </div>
 
@@ -52,7 +67,6 @@
   }
 
   .sign-up {
-    text-align: center;
     background: transparent;
     color: #38bdf8;
     font-weight: 500;
@@ -74,8 +88,7 @@
   }
 
   input,
-  button,
-  a {
+  button {
     font: inherit;
     border-radius: 0.8rem;
     border: 1px solid rgba(148, 163, 184, 0.35);
