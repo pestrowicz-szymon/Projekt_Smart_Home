@@ -1,34 +1,36 @@
 import { redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
-// src/routes/(protected)/devices/+page.server.ts
-export async function load({ cookies, fetch }) {
+export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = cookies.get('session');
 
 	if (!token) {
 		throw redirect(303, '/login');
 	}
 
-	try {
-		const res = await fetch('http://backend/api/devices', {
-			headers: { Authorization: `Bearer ${token}` }
-		});
-
-		if (res.status === 401 || res.status === 403) {
-			cookies.delete('session', { path: '/' });
-			throw redirect(303, '/login');
+	const response = await fetch('http://127.0.0.1:8000/api/users/me/', {
+		headers: {
+			Authorization: `Bearer ${token}`
 		}
+	});
 
-		if (!res.ok) {
-			throw new Error(`Failed to load devices: ${res.status}`);
-		}
-
-		return { devices: await res.json() };
-	} catch (error) {
-		if (error instanceof Response) {
-			throw error;
-		}
-
+	if (response.status === 401 || response.status === 403) {
 		cookies.delete('session', { path: '/' });
 		throw redirect(303, '/login');
 	}
-}
+
+	if (!response.ok) {
+		return { user: null };
+	}
+
+	const user = await response.json();
+
+	return { user };
+};
+
+export const actions: Actions = {
+	logout: async ({ cookies }) => {
+		cookies.delete('session', { path: '/' });
+		throw redirect(303, '/login');
+	}
+};

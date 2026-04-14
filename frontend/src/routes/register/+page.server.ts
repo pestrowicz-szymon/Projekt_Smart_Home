@@ -1,22 +1,25 @@
 import { fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
-export function load() {
+export const load: PageServerLoad = () => {
 	return {};
-}
+};
 
-export const actions = {
+export const actions: Actions = {
 	default: async ({ request, fetch }) => {
 		const data = await request.formData();
 		const username = String(data.get('username') ?? '');
+		const firstName = String(data.get('first_name') ?? '');
+		const lastName = String(data.get('last_name') ?? '');
 		const email = String(data.get('email') ?? '');
 		const password = String(data.get('password') ?? '');
-		const confirmPassword = String(data.get('confirm_password') ?? '');
+		const password2 = String(data.get('password2') ?? '');
 
-		if (password !== confirmPassword) {
+		if (password !== password2) {
 			return fail(400, { error: 'Passwords do not match' });
 		}
 
-		const response = await fetch('http://localhost:8000/api/users/register', {
+		const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -24,7 +27,10 @@ export const actions = {
 			body: JSON.stringify({
 				username,
 				email,
-				password
+				password,
+				password2,
+				first_name: firstName,
+				last_name: lastName
 			})
 		});
 
@@ -45,7 +51,10 @@ export const actions = {
 			) {
 				errorMessage = 'Username or email already exists';
 			} else if (typeof payload === 'object' && payload !== null) {
-				errorMessage = Object.values(payload).flat().join(' ') || errorMessage;
+				errorMessage = Object.values(payload)
+					.flatMap((value) => (Array.isArray(value) ? value : [String(value)]))
+					.join(' ')
+					.trim() || errorMessage;
 			}
 		} catch {
 			if (response.status === 409) {
