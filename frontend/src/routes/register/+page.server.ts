@@ -15,8 +15,34 @@ export const actions: Actions = {
 		const password = String(data.get('password') ?? '');
 		const password2 = String(data.get('password2') ?? '');
 
+		const values = {
+			username,
+			first_name: firstName,
+			last_name: lastName,
+			email
+		};
+
+		const fieldErrors: Record<string, string> = {};
+
+		if (!firstName.trim()) fieldErrors.first_name = 'Name is required';
+		if (!lastName.trim()) fieldErrors.last_name = 'Surname is required';
+		if (!username.trim()) fieldErrors.username = 'Username is required';
+		if (!email.trim()) fieldErrors.email = 'Email is required';
+		if (!password) fieldErrors.password = 'Password is required';
+		if (!password2) fieldErrors.password2 = 'Confirm password is required';
+
+		if (Object.keys(fieldErrors).length > 0) {
+			return fail(400, {
+				errors: fieldErrors,
+				values
+			});
+		}
+
 		if (password !== password2) {
-			return fail(400, { error: 'Passwords do not match' });
+			return fail(400, {
+				errors: { password2: 'Passwords do not match' },
+				values
+			});
 		}
 
 		const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
@@ -38,30 +64,36 @@ export const actions: Actions = {
 			throw redirect(303, '/login');
 		}
 
-		let errorMessage = 'Registration failed';
+		const errors: Record<string, string> = {};
 
 		try {
 			const payload = await response.json();
-			const payloadText = JSON.stringify(payload).toLowerCase();
 
-			if (
-				(payloadText.includes('username') && payloadText.includes('exist')) ||
-				(payloadText.includes('email') && payloadText.includes('exist')) ||
-				payloadText.includes('already')
-			) {
-				errorMessage = 'Username or email already exists';
-			} else if (typeof payload === 'object' && payload !== null) {
-				errorMessage = Object.values(payload)
-					.flatMap((value) => (Array.isArray(value) ? value : [String(value)]))
-					.join(' ')
-					.trim() || errorMessage;
+			if (payload && typeof payload === 'object') {
+				for (const [key, value] of Object.entries(payload)) {
+					const text = Array.isArray(value)
+						? value.map((item) => String(item)).join(' ')
+						: String(value);
+
+					if (key === 'non_field_errors' || key === 'detail') {
+						errors.form = text || 'Registration failed';
+					} else {
+						errors[key] = text;
+					}
+				}
 			}
 		} catch {
-			if (response.status === 409) {
-				errorMessage = 'Username or email already exists';
-			}
+			// Keep default message when backend does not return JSON.
 		}
 
-		return fail(response.status, { error: errorMessage });
+		if (Object.keys(errors).length === 0 && response.status === 400) {
+			errors.form = 'Registration data is invalid. Please review your inputs.';
+		}
+
+		if (Object.keys(errors).length === 0) {
+			errors.form = 'Registration failed. Please try again.';
+		}
+
+		return fail(response.status, { errors, values });
 	}
 };
