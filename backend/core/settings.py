@@ -80,8 +80,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'smarthome_db',
+        'USER': 'postgres',
+        'PASSWORD': 'your_password_here',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
