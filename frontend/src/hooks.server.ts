@@ -14,6 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		]);
 		event.locals.user = user;
 		event.locals.token = token;
+		event.locals.homes = homes;
 
 		const cookieId = Number(event.cookies.get('activeHomeId'));
 		event.locals.activeHome = homes.find((h) => h.id === cookieId) ?? homes[0] ?? null;

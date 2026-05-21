@@ -5,7 +5,7 @@ export const load: LayoutServerLoad = ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/login');
 
 	const hasHomes = (locals.homes?.length ?? 0) > 0;
-	if (!hasHomes && url.pathname !== '/onboarding') {
+	if (!hasHomes && !url.pathname.startsWith('/onboarding')) {
 		throw redirect(303, '/onboarding');
 	}
 
