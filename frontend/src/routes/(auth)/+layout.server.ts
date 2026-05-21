@@ -1,8 +1,9 @@
 import { redirect } from '@sveltejs/kit';
+import type { LayoutServerLoad } from './$types';
 
-export async function load({ cookies }) {
-	if (cookies.get('session')) {
-		throw redirect(303, '/dashboard');
+export const load: LayoutServerLoad = ({ locals }) => {
+	if (locals.user) {
+		throw redirect(303, '/h');
 	}
 	return {};
-}
+};

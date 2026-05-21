@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { ApiError, register, type RegisterPayload } from '$lib/server/endpoints';
+import { ApiError, register } from '$lib/server/endpoints';
+import type { RegisterPayload } from '$lib/types/auth';
 
 type RegisterActionData = {
 	formError?: string; // global error: API failure, network, unexpected

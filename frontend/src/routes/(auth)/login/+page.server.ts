@@ -16,7 +16,7 @@ export const actions = {
 				path: '/',
 				maxAge: 60 * 60 * 24
 			});
-			throw redirect(303, '/dashboard');
+			throw redirect(303, '/h');
 		} catch (err) {
 			if (err instanceof ApiError) {
 				return fail(err.status === 401 ? 401 : 500, { error: 'Invalid credentials' });

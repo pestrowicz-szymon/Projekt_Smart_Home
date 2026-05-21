@@ -15,6 +15,6 @@
 	<label for={name} class="text-md">{label}</label>
 	<input class="form-input" {name} {...rest} aria-invalid={error ? 'true' : undefined} />
 	{#if error}
-		<p class="error">{error}</p>
+		<p class="mt-1 text-danger">{error}</p>
 	{/if}
 </div>
