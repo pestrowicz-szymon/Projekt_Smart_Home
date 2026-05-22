@@ -26,7 +26,7 @@
 
 <div class="mx-auto max-w-md px-4 py-10">
 	<a
-		href={resolve('/onboarding')}
+		href={resolve('/h')}
 		class="mb-4 inline-block text-sm text-foreground-muted hover:text-foreground"
 	>
 		&larr; Back

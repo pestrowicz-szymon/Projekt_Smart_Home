@@ -30,11 +30,10 @@
 
 <svelte:head><title>Members · {home.name}</title></svelte:head>
 
-<div class="mx-auto max-w-2xl px-4 py-6">
-	<h1 class="mb-1 text-2xl">Members</h1>
-	<p class="mb-6 text-foreground-muted">People with access to {home.name}.</p>
+<div>
+	<p class="mb-4 text-sm text-foreground-muted">People with access to this home.</p>
 
-	<section class="mb-8">
+	<section class="mb-6">
 		<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
 			<li class="flex items-center gap-3 px-4 py-3">
 				<span class="rounded-full bg-accent-soft p-2 text-accent">

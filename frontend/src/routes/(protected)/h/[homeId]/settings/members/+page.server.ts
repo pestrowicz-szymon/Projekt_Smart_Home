@@ -1,24 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
+import type { Actions } from './$types';
 import { addMember } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
-import type { Home, HomeRole } from '$lib/types/home';
+import type { HomeRole } from '$lib/types/home';
 
 const ROLES: HomeRole[] = ['admin', 'member', 'viewer'];
-
-function canManageMembers(home: Home, userId: number): boolean {
-	if (home.owner.id === userId) return true;
-	const m = home.members.find((m) => m.user.id === userId);
-	if (!m) return false;
-	return m.role === 'owner' || m.role === 'admin' || m.can_manage_devices;
-}
-
-export const load: PageServerLoad = async ({ parent, locals }) => {
-	const { home } = await parent();
-	return {
-		canManage: canManageMembers(home, locals.user!.id)
-	};
-};
 
 export const actions: Actions = {
 	default: async ({ request, params, fetch, locals }) => {

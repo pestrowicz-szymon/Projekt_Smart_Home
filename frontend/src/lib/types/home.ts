@@ -25,3 +25,8 @@ export interface CreateHomePayload {
 	name: string;
 	description?: string;
 }
+
+export interface UpdateHomePayload {
+	name?: string;
+	description?: string;
+}

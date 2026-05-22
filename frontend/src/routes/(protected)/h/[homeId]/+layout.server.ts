@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import { canManageHome, isHomeOwner } from '$lib/server/permissions';
 
 export const load: LayoutServerLoad = ({ params, locals, cookies }) => {
 	const id = Number(params.homeId);
@@ -13,5 +14,11 @@ export const load: LayoutServerLoad = ({ params, locals, cookies }) => {
 			sameSite: 'lax'
 		});
 	}
-	return { home };
+
+	const userId = locals.user!.id;
+	return {
+		home,
+		canManage: canManageHome(home, userId),
+		isOwner: isHomeOwner(home, userId)
+	};
 };
