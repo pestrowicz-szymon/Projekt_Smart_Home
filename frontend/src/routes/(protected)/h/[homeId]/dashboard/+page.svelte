@@ -3,8 +3,6 @@
 	let { data }: PageProps = $props();
 
 	const displayName = $derived(data.user.first_name || data.user.username);
-
-	const hasHome = false;
 </script>
 
 <svelte:head>

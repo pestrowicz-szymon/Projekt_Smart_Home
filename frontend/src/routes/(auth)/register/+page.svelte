@@ -70,7 +70,7 @@
 		autocomplete="new-password"
 		required
 		label="Confirm Password"
-		error={form?.fieldErrors?.confirm_password}
+		error={form?.fieldErrors?.password2}
 	/>
 
 	<button type="submit" class="mb-2 bg-accent py-2 hover:bg-accent-hover">Register</button>

@@ -12,7 +12,7 @@
 <form method="POST" class="flex flex-col">
 	<p class="mb-4">Use your Smart Home account to continue.</p>
 
-	<FormField name="username" type="text" autocomplete="email" required label="Username" />
+	<FormField name="username" type="text" autocomplete="username" required label="Username" />
 
 	<FormField
 		name="password"

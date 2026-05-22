@@ -4,5 +4,4 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = ({ locals }) => {
 	if (!locals.user) throw redirect(303, '/login');
 	throw redirect(303, `/h`);
-	return {};
 };

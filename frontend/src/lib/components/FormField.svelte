@@ -13,7 +13,7 @@
 
 <div class="mb-4 flex flex-col">
 	<label for={name} class="text-md">{label}</label>
-	<input class="form-input" {name} {...rest} aria-invalid={error ? 'true' : undefined} />
+	<input class="form-input" {name} id={name} {...rest} aria-invalid={error ? 'true' : undefined} />
 	{#if error}
 		<p class="mt-1 text-danger">{error}</p>
 	{/if}

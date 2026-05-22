@@ -63,7 +63,7 @@ export const actions: Actions = {
 
 		if (!payload.first_name.trim()) fieldErrors.first_name = 'Name is required';
 		if (!payload.last_name.trim()) fieldErrors.last_name = 'Surname is required';
-		if (!payload.username.trim()) fieldErrors.first_name = 'First name is required';
+		if (!payload.username.trim()) fieldErrors.username = 'Username is required';
 		if (!payload.email) fieldErrors.email = 'Email is required';
 		if (!payload.password) fieldErrors.password = 'Password is required';
 		if (!payload.password2) fieldErrors.password2 = 'Confirm password is required';

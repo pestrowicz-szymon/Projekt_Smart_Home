@@ -4,7 +4,7 @@ export interface User {
 	email: string;
 	first_name: string;
 	last_name: string;
-	home_memberships: HomeMebership[];
+	home_memberships: HomeMembership[];
 }
 
 export interface LoginResponse {
@@ -22,7 +22,7 @@ export interface RegisterPayload {
 	last_name: string;
 }
 
-export interface HomeMebership {
+export interface HomeMembership {
 	id: number;
 	home: Home;
 	role: string;
