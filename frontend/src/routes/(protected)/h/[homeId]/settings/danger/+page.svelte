@@ -28,8 +28,8 @@
 		<section class="rounded-lg border border-danger-edge bg-danger-soft p-4">
 			<h2 class="mb-1 text-md font-medium text-danger">Delete this home</h2>
 			<p class="mb-3 text-sm text-foreground-muted">
-				This permanently deletes <strong class="text-foreground">{home.name}</strong>, all its devices,
-				and all member records. This cannot be undone.
+				This permanently deletes <strong class="text-foreground">{home.name}</strong>, all its
+				devices, and all member records. This cannot be undone.
 			</p>
 
 			<form method="POST" action="?/delete" class="flex flex-col gap-3">

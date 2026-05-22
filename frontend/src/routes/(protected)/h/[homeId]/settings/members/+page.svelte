@@ -34,7 +34,9 @@
 	<p class="mb-4 text-sm text-foreground-muted">People with access to this home.</p>
 
 	<section class="mb-6">
-		<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
+		<ul
+			class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised"
+		>
 			<li class="flex items-center gap-3 px-4 py-3">
 				<span class="rounded-full bg-accent-soft p-2 text-accent">
 					<UserIcon class="h-5 w-5" />

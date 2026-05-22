@@ -20,7 +20,9 @@
 
 <div>
 	{#if !canManage}
-		<p class="mb-4 rounded-md border border-line bg-surface-raised p-3 text-sm text-foreground-muted">
+		<p
+			class="mb-4 rounded-md border border-line bg-surface-raised p-3 text-sm text-foreground-muted"
+		>
 			Only owners and admins can edit these fields.
 		</p>
 	{/if}

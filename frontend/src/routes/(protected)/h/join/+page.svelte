@@ -24,7 +24,7 @@
 	<title>Join a home</title>
 </svelte:head>
 
-<div class="mx-auto max-w-md px-4 py-10">
+<div class="flex flex-col">
 	<a
 		href={resolve('/h')}
 		class="mb-4 inline-block text-sm text-foreground-muted hover:text-foreground"
@@ -43,15 +43,15 @@
 		<ul class="flex flex-col gap-3">
 			<li class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
-					<p class="text-xs text-foreground-subtle">Email</p>
-					<p class="truncate text-foreground">{data.user.email}</p>
+					<p class="text-s text-foreground-subtle">UUID</p>
+					<p class="truncate text-foreground">{data.user.id}</p>
 				</div>
 				<button
 					type="button"
-					onclick={() => copy(data.user.email, 'email')}
+					onclick={() => copy(data.user.id, 'id')}
 					class="shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:border-line-accent"
 				>
-					{copiedField === 'email' ? 'Copied' : 'Copy'}
+					{copiedField === 'id' ? 'Copied' : 'Copy'}
 				</button>
 			</li>
 		</ul>

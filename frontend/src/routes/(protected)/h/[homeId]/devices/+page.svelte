@@ -31,7 +31,7 @@
 
 <svelte:head><title>Devices · {home.name}</title></svelte:head>
 
-<div class="mx-auto max-w-2xl px-4 py-6">
+<div class="flex flex-col">
 	<h1 class="mb-1 text-2xl">Devices</h1>
 	<p class="mb-6 text-foreground-muted">Things connected to {home.name}.</p>
 
@@ -43,7 +43,9 @@
 			</p>
 		</div>
 	{:else}
-		<ul class="mb-8 divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
+		<ul
+			class="mb-8 divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised"
+		>
 			{#each devices as device (device.id)}
 				<li class="flex items-center gap-3 px-4 py-3">
 					<span class="rounded-md bg-accent-soft p-2 text-accent">
@@ -55,17 +57,11 @@
 							{DEVICE_TYPE_LABEL[device.device_type]} · {device.hardware_id}
 						</p>
 					</div>
-					<span
-						class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}"
-					>
+					<span class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}">
 						{device.status}
 					</span>
 					{#if isOwner}
-						<form
-							method="POST"
-							action="?/delete"
-							onsubmit={(e) => confirmDelete(device.name, e)}
-						>
+						<form method="POST" action="?/delete" onsubmit={(e) => confirmDelete(device.name, e)}>
 							<input type="hidden" name="id" value={device.id} />
 							<button
 								type="submit"

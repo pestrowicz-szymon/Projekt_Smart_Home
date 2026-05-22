@@ -18,7 +18,7 @@
 
 <svelte:head><title>Your homes</title></svelte:head>
 
-<div class="mx-auto max-w-md px-4 py-8">
+<div class="flex flex-col">
 	{#if homes.length === 0}
 		<h1 class="mb-2 text-center text-2xl">Welcome</h1>
 		<p class="mb-8 text-center text-foreground-muted">
@@ -28,7 +28,9 @@
 		<h1 class="mb-1 text-2xl">Your homes</h1>
 		<p class="mb-6 text-foreground-muted">Pick a home or add another.</p>
 
-		<ul class="mb-8 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-raised">
+		<ul
+			class="mb-8 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-raised"
+		>
 			{#each homes as home (home.id)}
 				{@const active = home.id === activeHomeId}
 				<li>
@@ -48,7 +50,9 @@
 								{home.members.length + 1} member{home.members.length === 0 ? '' : 's'}
 							</span>
 						</span>
-						<span class="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-xs text-foreground-muted">
+						<span
+							class="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-xs text-foreground-muted"
+						>
 							{roleFor(home)}
 						</span>
 					</a>
@@ -69,9 +73,7 @@
 				<span class="block font-medium text-foreground">
 					{homes.length === 0 ? 'Create a home' : 'Create another home'}
 				</span>
-				<span class="block text-sm text-foreground-muted">
-					You'll be the owner.
-				</span>
+				<span class="block text-sm text-foreground-muted"> You'll be the owner. </span>
 			</span>
 		</a>
 
@@ -84,9 +86,7 @@
 			</span>
 			<span class="flex-1">
 				<span class="block font-medium text-foreground">Join a home</span>
-				<span class="block text-sm text-foreground-muted">
-					Ask the owner to add you.
-				</span>
+				<span class="block text-sm text-foreground-muted"> Ask the owner to add you. </span>
 			</span>
 		</a>
 	</div>

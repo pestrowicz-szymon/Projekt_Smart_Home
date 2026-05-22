@@ -17,7 +17,7 @@
 	const tabIdle = 'border-transparent text-foreground-muted hover:text-foreground';
 </script>
 
-<div class="mx-auto max-w-2xl px-4 py-6">
+<div class="flex flex-col">
 	<h1 class="mb-1 text-2xl">{data.home.name}</h1>
 	<p class="mb-4 text-sm text-foreground-muted">Home settings</p>
 

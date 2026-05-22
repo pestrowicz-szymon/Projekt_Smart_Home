@@ -1,10 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import {
-	createDevice,
-	deleteDevice,
-	listDevices
-} from '$lib/server/endpoints/devices';
+import { createDevice, deleteDevice, listDevices } from '$lib/server/endpoints/devices';
 import { ApiError } from '$lib/server/endpoints/client';
 import { DEVICE_TYPES, type DeviceType } from '$lib/types/device';
 
@@ -52,7 +48,8 @@ export const actions: Actions = {
 				const body = err.body;
 				let msg = err.message;
 				if (body && typeof body === 'object') {
-					if ('hardware_id' in body) msg = `Hardware ID: ${(body as Record<string, unknown>).hardware_id}`;
+					if ('hardware_id' in body)
+						msg = `Hardware ID: ${(body as Record<string, unknown>).hardware_id}`;
 					else if ('detail' in body) msg = String((body as { detail: unknown }).detail);
 					else if ('home_id' in body) msg = String((body as Record<string, unknown>).home_id);
 				}
