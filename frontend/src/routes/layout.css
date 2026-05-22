@@ -1,12 +1,156 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
+@theme {
+	--font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
+	--font-serif: 'DM Serif Display', Georgia, serif;
+
+	/* === Surfaces — `bg-background`, `bg-surface`, `bg-surface-raised`, `bg-surface-sunken` === */
+	--color-background: #faf6f0;
+	--color-surface: #f5efe6;
+	--color-surface-raised: #ede3d6;
+	--color-surface-sunken: #f0ebe2;
+
+	/* === Borders — `border-line`, `border-line-strong`, `border-line-accent` === */
+	--color-line: #ddd0bc;
+	--color-line-strong: #c8b89a;
+	--color-line-accent: #c8753a;
+
+	/* === Foreground / text — `text-foreground`, `text-foreground-muted`, `text-foreground-subtle` === */
+	--color-foreground: #2e1a0e;
+	--color-foreground-muted: #7a5f43;
+	--color-foreground-subtle: #a88b6e;
+
+	/* === Accent (terracotta) — `bg-accent`, `text-accent`, `border-accent`, `bg-accent-soft` === */
+	--color-accent: #c8753a;
+	--color-accent-hover: #a85e28;
+	--color-accent-soft: #f5e6d0;
+
+	/* === Secondary accent (was --amber-*) — `bg-secondary`, `bg-secondary-soft` === */
+	--color-secondary: #d4960a;
+	--color-secondary-hover: #b07a06;
+	--color-secondary-soft: #fbf0d0;
+
+	/* === Semantic states === */
+	--color-success: #4a7c59;
+	--color-success-soft: #eaf3ec;
+	--color-success-edge: #b8d8c0;
+
+	--color-warning: #8a6200;
+	--color-warning-soft: #fbf0d0;
+	--color-warning-edge: #f0d080;
+
+	--color-danger: #c0392b;
+	--color-danger-soft: #faeaea;
+	--color-danger-edge: #f0b8b8;
+
+	/* renamed from --color-neutral-* to avoid confusion with Tailwind's neutral-50..950 palette */
+	--color-muted: #7a5f43;
+	--color-muted-soft: #ede3d6;
+	--color-muted-edge: #c8b89a;
+
+	/* === Overlay === */
+	--color-overlay: rgba(46, 26, 14, 0.45);
+
+	/* === Border radius (overrides Tailwind defaults; `rounded-pill` is custom) === */
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 14px;
+	--radius-xl: 20px;
+	--radius-pill: 9999px;
+
+	/* === Spacing scale — `p-1`..`p-12`, `m-1`..`m-12`, etc. === */
+	--spacing-1: 4px;
+	--spacing-2: 8px;
+	--spacing-3: 12px;
+	--spacing-4: 16px;
+	--spacing-5: 20px;
+	--spacing-6: 24px;
+	--spacing-8: 32px;
+	--spacing-10: 40px;
+	--spacing-12: 48px;
+
+	/* === Font-size scale — `text-xs`..`text-3xl` === */
+	--text-xs: 11px;
+	--text-sm: 13px;
+	--text-base: 15px;
+	--text-md: 17px;
+	--text-lg: 20px;
+	--text-xl: 24px;
+	--text-2xl: 30px;
+	--text-3xl: 38px;
+
+	/* === Font weights — `font-normal`, `font-medium`, `font-semibold`, `font-bold` === */
+	--font-weight-normal: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+
+	/* === Line heights — `leading-tight`, `leading-normal`, `leading-relaxed` === */
+	--leading-tight: 1.25;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.75;
+}
+
 @layer base {
 	:root {
-		--font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+		/* Not in @theme — no utility needed, just used in box-shadow */
+		--accent-focus-ring: rgba(200, 117, 58, 0.18);
 	}
 
 	html {
 		font-family: var(--font-sans);
+		background-color: var(--color-background);
+		color: var(--color-foreground);
+		-webkit-font-smoothing: antialiased;
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-serif);
+		color: var(--color-foreground);
+		line-height: var(--leading-tight);
+	}
+
+	h4,
+	h5,
+	h6,
+	p,
+	label,
+	span {
+		color: var(--color-foreground-muted);
+		line-height: var(--leading-normal);
+	}
+
+	input,
+	textarea,
+	select {
+		background-color: var(--color-surface-sunken);
+		border: 1px solid var(--color-line-strong);
+		border-radius: var(--radius-md);
+		color: var(--color-foreground);
+		font-family: var(--font-sans);
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: var(--color-foreground-subtle);
+	}
+
+	input:focus,
+	textarea:focus,
+	select:focus {
+		outline: none;
+		border-color: var(--color-line-accent);
+		box-shadow: 0 0 0 3px var(--accent-focus-ring);
+	}
+
+	a {
+		color: var(--color-accent);
+	}
+
+	a:hover {
+		color: var(--color-accent-hover);
 	}
 }

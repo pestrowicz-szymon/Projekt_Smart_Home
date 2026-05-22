@@ -1,7 +1,17 @@
 import { redirect } from '@sveltejs/kit';
+import type { LayoutServerLoad } from './$types';
 
-export function load({ cookies }) {
-	const token = cookies.get('session');
-	if (!token) throw redirect(303, '/login');
-	return {};
-}
+export const load: LayoutServerLoad = ({ locals, url }) => {
+	if (!locals.user) throw redirect(303, '/login');
+
+	const hasHomes = (locals.homes?.length ?? 0) > 0;
+	if (!hasHomes && !url.pathname.startsWith('/onboarding')) {
+		throw redirect(303, '/onboarding');
+	}
+
+	return {
+		user: locals.user,
+		homes: locals.homes ?? [],
+		activeHome: locals.activeHome ?? null
+	};
+};

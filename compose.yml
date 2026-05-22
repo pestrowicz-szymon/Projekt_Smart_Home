@@ -1,0 +1,17 @@
+services:
+    db:
+        image: postgres:18.0
+        environment:
+            - POSTGRES_DB=smarthome_db
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=admin
+            - POSTGRES_HOST=localhost
+            - POSTGRES_PORT=5432
+
+        ports:
+            - "5432:5432"
+        volumes:
+            - smart_home_postgres_volume:/var/lib/postgresql
+
+volumes:
+    smart_home_postgres_volume:
