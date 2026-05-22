@@ -12,6 +12,7 @@ export const POST: RequestHandler = async ({ cookies, fetch }) => {
 		}
 	}
 	cookies.delete('session', { path: '/' });
+	cookies.delete('refresh', { path: '/' });
 	cookies.delete('activeHomeId', { path: '/' });
 	throw redirect(303, '/login');
 };

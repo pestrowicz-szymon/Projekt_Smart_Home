@@ -18,3 +18,10 @@ export function me(fetch: FetchFn, token: string) {
 export function logout(fetch: FetchFn, token: string) {
 	return apiFetch<{ message: string }>(fetch, '/api/users/logout/', { method: 'POST', token });
 }
+
+export function refreshAccessToken(fetch: FetchFn, refresh: string) {
+	return apiFetch<{ access: string; refresh?: string }>(fetch, '/api/token/refresh/', {
+		method: 'POST',
+		body: { refresh }
+	});
+}
