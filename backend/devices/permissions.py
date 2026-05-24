@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-from .models import Device, Home
+from .models import Device, Home, Room
 
 
 def user_has_home_access(user, home: Home, write: bool = False) -> bool:
@@ -33,3 +33,8 @@ class CanDeleteDevice(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         return request.user.is_superuser or obj.home.owner_id == request.user.id
+
+
+class CanAccessRoom(BasePermission):
+    def has_object_permission(self, request, view, obj: Room):
+        return user_has_home_access(request.user, obj.home, write=request.method not in SAFE_METHODS)

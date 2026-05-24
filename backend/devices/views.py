@@ -3,12 +3,118 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema, extend_schema_view
 
-from .models import Device, DeviceAction, Home, SensorData
-from .permissions import CanAccessDevice, CanAccessHome, CanDeleteDevice, user_has_home_access
-from .serializers import DeviceActionSerializer, DeviceCommandCreateSerializer, DeviceSerializer, HomeMemberSerializer, HomeSerializer, SensorDataCreateSerializer, SensorDataSerializer
+from .models import Device, DeviceAction, Home, Room, SensorData
+from .permissions import CanAccessDevice, CanAccessHome, CanAccessRoom, CanDeleteDevice, user_has_home_access
+from .serializers import DeviceActionSerializer, DeviceCommandCreateSerializer, DeviceSerializer, HomeMemberSerializer, HomeSerializer, RoomSerializer, SensorDataCreateSerializer, SensorDataSerializer
 from .services import enqueue_device_action, record_sensor_reading
+
+
+ROOM_ID_QUERY_PARAMETER = OpenApiParameter(
+	name='room_id',
+	type=OpenApiTypes.INT,
+	location=OpenApiParameter.QUERY,
+	required=False,
+	description='Filter devices by room id.',
+)
+
+HOME_MEMBER_CREATE_EXAMPLE = OpenApiExample(
+	'Add home member',
+	value={
+		'user_id': 12,
+		'role': 'member',
+		'can_manage_devices': False,
+	},
+	request_only=True,
+)
+
+HOME_MEMBER_RESPONSE_EXAMPLE = OpenApiExample(
+	'Home member response',
+	value={
+		'id': 21,
+		'home': 1,
+		'user': {
+			'id': 12,
+			'first_name': 'Jan',
+			'last_name': 'Kowalski',
+		},
+		'role': 'member',
+		'can_manage_devices': False,
+		'created_at': '2026-05-24T10:00:00Z',
+	},
+	response_only=True,
+)
+
+ROOM_CREATE_EXAMPLE = OpenApiExample(
+	'Create room',
+	value={
+		'home_id': 1,
+		'name': 'Living Room',
+		'description': 'Main living area',
+	},
+	request_only=True,
+)
+
+ROOM_RESPONSE_EXAMPLE = OpenApiExample(
+	'Room response',
+	value={
+		'id': 7,
+		'home': 1,
+		'name': 'Living Room',
+		'description': 'Main living area',
+		'created_at': '2026-05-24T10:00:00Z',
+		'updated_at': '2026-05-24T10:00:00Z',
+	},
+	response_only=True,
+)
+
+DEVICE_CREATE_EXAMPLE = OpenApiExample(
+	'Create device',
+	value={
+		'home_id': 1,
+		'room_id': 7,
+		'name': 'Thermometer Kitchen',
+		'device_type': 'thermometer',
+		'hardware_id': 'hw-thermo-001',
+		'is_active': True,
+		'current_state': 21.5,
+		'state_payload': {'battery': 95},
+	},
+	request_only=True,
+)
+
+DEVICE_RESPONSE_EXAMPLE = OpenApiExample(
+	'Device response',
+	value={
+		'id': 31,
+		'home_id': 1,
+		'room': {
+			'id': 7,
+			'name': 'Living Room',
+			'description': 'Main living area',
+		},
+		'room_id': 7,
+		'name': 'Thermometer Kitchen',
+		'device_type': 'thermometer',
+		'hardware_id': 'hw-thermo-001',
+		'status': 'unknown',
+		'is_active': True,
+		'current_state': 21.5,
+		'state_payload': {'battery': 95},
+		'certificate_fingerprint': None,
+		'last_seen_at': None,
+		'created_at': '2026-05-24T10:00:00Z',
+		'updated_at': '2026-05-24T10:00:00Z',
+	},
+	response_only=True,
+)
+
+HOME_DEVICES_FILTER_EXAMPLE = OpenApiExample(
+	'Filter by room',
+	value=7,
+	parameter_only='room_id',
+)
 
 
 @extend_schema_view(
@@ -25,7 +131,7 @@ class HomeViewSet(viewsets.ModelViewSet):
 
 	def get_queryset(self):
 		user = self.request.user
-		queryset = Home.objects.select_related('owner').prefetch_related('memberships__user', 'devices')
+		queryset = Home.objects.select_related('owner').prefetch_related('memberships__user', 'devices', 'rooms')
 		if user.is_superuser:
 			return queryset
 		return queryset.filter(Q(owner=user) | Q(memberships__user=user)).distinct()
@@ -37,6 +143,7 @@ class HomeViewSet(viewsets.ModelViewSet):
 		tags=['homes'],
 		summary='List or add home members',
 		request=HomeMemberSerializer,
+		examples=[HOME_MEMBER_CREATE_EXAMPLE, HOME_MEMBER_RESPONSE_EXAMPLE],
 		responses={200: HomeMemberSerializer(many=True), 201: HomeMemberSerializer},
 	)
 	@action(detail=True, methods=['get', 'post'], url_path='members')
@@ -55,15 +162,85 @@ class HomeViewSet(viewsets.ModelViewSet):
 		serializer.save(home=home)
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+	@extend_schema(
+		tags=['homes'],
+		summary='Get, update or delete a home member',
+		request=HomeMemberSerializer,
+		examples=[HOME_MEMBER_RESPONSE_EXAMPLE, HOME_MEMBER_CREATE_EXAMPLE],
+		responses={200: HomeMemberSerializer, 204: None},
+	)
+	@action(detail=True, methods=['get', 'put', 'delete'], url_path=r'members/(?P<member_id>[^/.]+)')
+	def member(self, request, pk=None, member_id=None):
+		home = self.get_object()
+		member = home.memberships.select_related('user').filter(pk=member_id).first()
+		if member is None:
+			return Response({'detail': 'Home member not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+		if request.method == 'GET':
+			serializer = HomeMemberSerializer(member)
+			return Response(serializer.data)
+
+		if not user_has_home_access(request.user, home, write=True):
+			return Response({'detail': 'You do not have permission to manage members for this home.'}, status=status.HTTP_403_FORBIDDEN)
+
+		if request.method == 'DELETE':
+			member.delete()
+			return Response(status=status.HTTP_204_NO_CONTENT)
+
+		serializer = HomeMemberSerializer(member, data=request.data, partial=True)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		return Response(serializer.data)
+
+	@extend_schema(
+		tags=['homes'],
+		summary='List devices for a home',
+		parameters=[ROOM_ID_QUERY_PARAMETER],
+		examples=[HOME_DEVICES_FILTER_EXAMPLE],
+		responses=DeviceSerializer(many=True),
+	)
+	@action(detail=True, methods=['get'], url_path='devices')
+	def devices(self, request, pk=None):
+		home = self.get_object()
+		queryset = home.devices.select_related('room', 'room__home').all()
+		room_id = request.query_params.get('room_id')
+		if room_id:
+			queryset = queryset.filter(room_id=room_id)
+		return Response(DeviceSerializer(queryset, many=True).data)
 
 
 
 @extend_schema_view(
-	list=extend_schema(tags=['devices'], summary='List devices', responses=DeviceSerializer),
-	retrieve=extend_schema(tags=['devices'], summary='Get device details', responses=DeviceSerializer),
-	create=extend_schema(tags=['devices'], summary='Create device', request=DeviceSerializer, responses=DeviceSerializer),
-	update=extend_schema(tags=['devices'], summary='Update device', request=DeviceSerializer, responses=DeviceSerializer),
-	partial_update=extend_schema(tags=['devices'], summary='Patch device', request=DeviceSerializer, responses=DeviceSerializer),
+	list=extend_schema(tags=['rooms'], summary='List rooms', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
+	retrieve=extend_schema(tags=['rooms'], summary='Get room details', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
+	create=extend_schema(tags=['rooms'], summary='Create room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
+	update=extend_schema(tags=['rooms'], summary='Update room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
+	partial_update=extend_schema(tags=['rooms'], summary='Patch room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
+	destroy=extend_schema(tags=['rooms'], summary='Delete room', responses={204: None}),
+)
+class RoomViewSet(viewsets.ModelViewSet):
+	serializer_class = RoomSerializer
+	permission_classes = [IsAuthenticated, CanAccessRoom]
+
+	def get_queryset(self):
+		user = self.request.user
+		queryset = Room.objects.select_related('home', 'home__owner').prefetch_related('devices')
+		if user.is_superuser:
+			return queryset
+		return queryset.filter(Q(home__owner=user) | Q(home__memberships__user=user)).distinct()
+
+	def perform_create(self, serializer):
+		serializer.save()
+
+
+
+
+@extend_schema_view(
+	list=extend_schema(tags=['devices'], summary='List devices', parameters=[ROOM_ID_QUERY_PARAMETER], examples=[HOME_DEVICES_FILTER_EXAMPLE], responses=DeviceSerializer(many=True)),
+	retrieve=extend_schema(tags=['devices'], summary='Get device details', examples=[DEVICE_RESPONSE_EXAMPLE], responses=DeviceSerializer),
+	create=extend_schema(tags=['devices'], summary='Create device', request=DeviceSerializer, examples=[DEVICE_CREATE_EXAMPLE, DEVICE_RESPONSE_EXAMPLE], responses=DeviceSerializer),
+	update=extend_schema(tags=['devices'], summary='Update device', request=DeviceSerializer, examples=[DEVICE_CREATE_EXAMPLE, DEVICE_RESPONSE_EXAMPLE], responses=DeviceSerializer),
+	partial_update=extend_schema(tags=['devices'], summary='Patch device', request=DeviceSerializer, examples=[DEVICE_CREATE_EXAMPLE, DEVICE_RESPONSE_EXAMPLE], responses=DeviceSerializer),
 	destroy=extend_schema(tags=['devices'], summary='Delete device', responses={204: None}),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -72,7 +249,10 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
 	def get_queryset(self):
 		user = self.request.user
-		queryset = Device.objects.select_related('home', 'home__owner').prefetch_related('readings', 'actions')
+		queryset = Device.objects.select_related('home', 'home__owner', 'room', 'room__home').prefetch_related('readings', 'actions')
+		room_id = self.request.query_params.get('room_id')
+		if room_id:
+			queryset = queryset.filter(room_id=room_id)
 		if user.is_superuser:
 			return queryset
 		return queryset.filter(Q(home__owner=user) | Q(home__memberships__user=user)).distinct()
