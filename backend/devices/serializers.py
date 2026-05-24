@@ -1,17 +1,19 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.permissions import SAFE_METHODS
 
-from .models import Device, DeviceAction, Home, HomeMember, SensorData
+from .models import Device, DeviceAction, Home, HomeMember, Room, SensorData
+from .permissions import user_has_home_access
 
 
-class UserSummarySerializer(serializers.ModelSerializer):
+class PublicUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'first_name', 'last_name')
 
 
 class HomeMemberSerializer(serializers.ModelSerializer):
-    user = UserSummarySerializer(read_only=True)
+    user = PublicUserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(source='user', queryset=User.objects.all(), write_only=True)
 
     class Meta:
@@ -28,35 +30,70 @@ class HomeMemberSerializer(serializers.ModelSerializer):
 
 
 class HomeSerializer(serializers.ModelSerializer):
-    owner = UserSummarySerializer(read_only=True)
+    owner = PublicUserSerializer(read_only=True)
     members = HomeMemberSerializer(many=True, read_only=True, source='memberships')
+    rooms = serializers.SerializerMethodField()
     devices_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Home
-        fields = ('id', 'name', 'description', 'owner', 'members', 'devices_count', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'owner', 'created_at', 'updated_at', 'devices_count', 'members')
+        fields = ('id', 'name', 'description', 'owner', 'members', 'rooms', 'devices_count', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'owner', 'created_at', 'updated_at', 'devices_count', 'members', 'rooms')
+
+    def get_rooms(self, obj):
+        return RoomSerializer(obj.rooms.all(), many=True).data
 
     def get_devices_count(self, obj):
         return obj.devices.count()
 
 
-class DeviceSerializer(serializers.ModelSerializer):
-    home = HomeSerializer(read_only=True)
+class RoomSerializer(serializers.ModelSerializer):
+    home = serializers.PrimaryKeyRelatedField(read_only=True)
     home_id = serializers.PrimaryKeyRelatedField(source='home', queryset=Home.objects.all(), write_only=True)
 
     class Meta:
-        model = Device
-        fields = (
-            'id', 'home', 'home_id', 'name', 'device_type', 'hardware_id', 'status',
-            'is_active', 'current_state', 'state_payload', 'certificate_fingerprint',
-            'last_seen_at', 'created_at', 'updated_at',
-        )
-        read_only_fields = ('id', 'home', 'status', 'last_seen_at', 'created_at', 'updated_at')
+        model = Room
+        fields = ('id', 'home', 'home_id', 'name', 'description', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'home', 'created_at', 'updated_at')
 
     def validate(self, attrs):
         request = self.context.get('request')
         home = attrs.get('home') or getattr(self.instance, 'home', None)
+        if request and home and not user_has_home_access(request.user, home, write=request.method not in SAFE_METHODS):
+            raise serializers.ValidationError({'home_id': 'You do not have permission to manage rooms in this home.'})
+        return attrs
+
+
+class RoomSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ('id', 'name', 'description')
+
+
+class DeviceSerializer(serializers.ModelSerializer):
+    home_id = serializers.PrimaryKeyRelatedField(source='home', queryset=Home.objects.all(), write_only=True)
+    room = RoomSummarySerializer(read_only=True)
+    room_id = serializers.PrimaryKeyRelatedField(source='room', queryset=Room.objects.all(), write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = Device
+        fields = (
+            'id', 'home_id', 'room', 'room_id', 'name', 'device_type', 'hardware_id', 'status',
+            'is_active', 'current_state', 'state_payload', 'certificate_fingerprint',
+            'last_seen_at', 'created_at', 'updated_at',
+        )
+        read_only_fields = ('id', 'room', 'status', 'last_seen_at', 'created_at', 'updated_at')
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        home = attrs.get('home') or getattr(self.instance, 'home', None)
+        room = attrs.get('room')
+        if room is None and self.instance is not None:
+            room = self.instance.room
+
+        if home and room and room.home_id != home.id:
+            raise serializers.ValidationError({'room_id': 'Selected room does not belong to this home.'})
+
         if request and home and not request.user.is_superuser:
             if home.owner_id != request.user.id:
                 membership = home.memberships.filter(user=request.user).first()
@@ -82,7 +119,7 @@ class SensorDataCreateSerializer(serializers.Serializer):
 
 
 class DeviceActionSerializer(serializers.ModelSerializer):
-    user = UserSummarySerializer(read_only=True)
+    user = PublicUserSerializer(read_only=True)
 
     class Meta:
         model = DeviceAction

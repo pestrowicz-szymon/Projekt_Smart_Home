@@ -35,6 +35,25 @@ class HomeMember(models.Model):
         return f'{self.user} in {self.home} ({self.role})'
 
 
+class Room(models.Model):
+    home = models.ForeignKey(Home, on_delete=models.CASCADE, related_name='rooms')
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['home', 'name'], name='unique_room_per_home'),
+        ]
+        indexes = [
+            models.Index(fields=['home', 'name']),
+        ]
+
+    def __str__(self):
+        return f'{self.name} ({self.home})'
+
+
 class Device(models.Model):
     class DeviceType(models.TextChoices):
         THERMOMETER = 'thermometer', 'Termometr'
@@ -50,6 +69,7 @@ class Device(models.Model):
         OFFLINE = 'offline', 'Offline'
 
     home = models.ForeignKey(Home, on_delete=models.CASCADE, related_name='devices')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, related_name='devices', blank=True, null=True)
     name = models.CharField(max_length=100)
     device_type = models.CharField(max_length=20, choices=DeviceType.choices)
     hardware_id = models.CharField(max_length=100, unique=True)
@@ -65,6 +85,7 @@ class Device(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['home', 'device_type']),
+            models.Index(fields=['home', 'room']),
             models.Index(fields=['hardware_id']),
             models.Index(fields=['status']),
         ]

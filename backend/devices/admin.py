@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Device, DeviceAction, Home, HomeMember, SensorData
+from .models import Device, DeviceAction, Home, HomeMember, Room, SensorData
 
 
 @admin.register(Home)
@@ -15,6 +15,13 @@ class HomeMemberAdmin(admin.ModelAdmin):
 	list_display = ('id', 'home', 'user', 'role', 'can_manage_devices', 'created_at')
 	search_fields = ('home__name', 'user__username')
 	list_select_related = ('home', 'user')
+
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+	list_display = ('id', 'name', 'home', 'created_at')
+	search_fields = ('name', 'home__name')
+	list_select_related = ('home',)
 
 
 @admin.register(Device)
