@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'devices',
+    'invites',
     'users',
     'rest_framework',
     'rest_framework_simplejwt',

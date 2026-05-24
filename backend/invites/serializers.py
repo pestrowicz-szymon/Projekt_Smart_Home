@@ -1,0 +1,51 @@
+from django.contrib.auth.models import User
+from rest_framework import serializers
+from django.utils import timezone
+
+from devices.models import HomeMember
+
+from .models import HomeInvite
+
+
+class PublicUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'first_name', 'last_name')
+
+
+class HomeInviteSerializer(serializers.ModelSerializer):
+    created_by = PublicUserSerializer(read_only=True)
+    used_by = PublicUserSerializer(read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HomeInvite
+        fields = (
+            'id', 'home', 'created_by', 'expires_at', 'used_by', 'used_at', 'revoked_at',
+            'status', 'created_at', 'updated_at',
+        )
+        read_only_fields = ('id', 'home', 'created_by', 'expires_at', 'used_by', 'used_at', 'revoked_at', 'status', 'created_at', 'updated_at')
+
+    def get_status(self, obj):
+        if obj.revoked_at is not None:
+            return 'revoked'
+        if obj.used_at is not None:
+            return 'used'
+        return 'active' if obj.expires_at > timezone.now() else 'expired'
+
+
+class HomeInviteCreateSerializer(serializers.Serializer):
+    pass
+
+
+class HomeInviteRedeemSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=64, trim_whitespace=True)
+
+
+class HomeMemberSerializer(serializers.ModelSerializer):
+    user = PublicUserSerializer(read_only=True)
+
+    class Meta:
+        model = HomeMember
+        fields = ('id', 'home', 'user', 'role', 'can_manage_devices', 'created_at')
+        read_only_fields = ('id', 'home', 'user', 'created_at')
