@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view
 
 from devices.models import Home
 
@@ -62,8 +62,23 @@ HOME_INVITE_REDEEM_EXAMPLE = OpenApiExample(
     request_only=True,
 )
 
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+HOME_INVITE_REDEEM_RESPONSE_EXAMPLE = OpenApiExample(
+    'Redeem invite response',
+    value={
+        'id': 21,
+        'home': 1,
+        'user': {
+            'id': 12,
+            'first_name': 'Jan',
+            'last_name': 'Kowalski',
+        },
+        'role': 'member',
+        'can_manage_devices': False,
+        'created_at': '2026-05-24T10:00:00Z',
+    },
+    response_only=True,
+)
+
 @extend_schema(
     tags=['invites'],
     summary='List or create home invites',
@@ -71,6 +86,8 @@ HOME_INVITE_REDEEM_EXAMPLE = OpenApiExample(
     examples=[HOME_INVITE_CREATE_RESPONSE_EXAMPLE, HOME_INVITE_LIST_EXAMPLE],
     responses={200: HomeInviteSerializer(many=True), 201: HomeInviteSerializer},
 )
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def home_invites(request, home_id):
     home = get_object_or_404(Home.objects.select_related('owner').prefetch_related('memberships__user', 'devices', 'rooms'), pk=home_id)
     if not user_can_manage_home_invites(request.user, home):
@@ -88,15 +105,24 @@ def home_invites(request, home_id):
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @extend_schema(
     tags=['invites'],
     summary='Redeem a home invitation code',
+    description=(
+        'Use this endpoint after logging in. Send a POST request with a JSON body like '
+        '`{"code": "<invite_code>"}`. The code is one-time use; if it is valid, the current '
+        'user is added to the target home and the response contains the created HomeMember record.'
+    ),
     request=HomeInviteRedeemSerializer,
-    examples=[HOME_INVITE_REDEEM_EXAMPLE],
-    responses={201: HomeMemberSerializer},
+    examples=[HOME_INVITE_REDEEM_EXAMPLE, HOME_INVITE_REDEEM_RESPONSE_EXAMPLE],
+    responses={
+        201: HomeMemberSerializer,
+        400: OpenApiResponse(description='The code is missing, invalid, expired, or already used.'),
+        401: OpenApiResponse(description='Authentication required.'),
+    },
 )
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def redeem_invite(request):
     serializer = HomeInviteRedeemSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
