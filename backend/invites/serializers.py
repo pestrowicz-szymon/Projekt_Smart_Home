@@ -39,7 +39,11 @@ class HomeInviteCreateSerializer(serializers.Serializer):
 
 
 class HomeInviteRedeemSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=64, trim_whitespace=True)
+    code = serializers.CharField(
+        max_length=64,
+        trim_whitespace=True,
+        help_text='Invitation code from the invite link or QR code. Send it in POST /api/invites/invites/redeem/.',
+    )
 
 
 class HomeMemberSerializer(serializers.ModelSerializer):
