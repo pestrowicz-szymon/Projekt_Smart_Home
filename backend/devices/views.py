@@ -209,7 +209,6 @@ class HomeViewSet(viewsets.ModelViewSet):
 		return Response(DeviceSerializer(queryset, many=True).data)
 
 
-
 @extend_schema_view(
 	list=extend_schema(tags=['rooms'], summary='List rooms', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
 	retrieve=extend_schema(tags=['rooms'], summary='Get room details', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
@@ -231,8 +230,6 @@ class RoomViewSet(viewsets.ModelViewSet):
 
 	def perform_create(self, serializer):
 		serializer.save()
-
-
 
 
 @extend_schema_view(
@@ -323,8 +320,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
 		return Response(DeviceActionSerializer(action).data, status=status.HTTP_201_CREATED)
 
 
-
-
 @extend_schema_view(
 	list=extend_schema(tags=['device-actions'], summary='List device actions', responses=DeviceActionSerializer),
 	retrieve=extend_schema(tags=['device-actions'], summary='Get device action', responses=DeviceActionSerializer),
@@ -339,8 +334,6 @@ class DeviceActionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
 		if user.is_superuser:
 			return queryset
 		return queryset.filter(Q(device__home__owner=user) | Q(device__home__memberships__user=user)).distinct()
-
-
 
 
 @extend_schema_view(
