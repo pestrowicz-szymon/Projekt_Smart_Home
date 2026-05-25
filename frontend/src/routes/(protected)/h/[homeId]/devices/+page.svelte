@@ -8,7 +8,8 @@
 	let { data, form }: PageProps = $props();
 
 	const home = $derived(data.home);
-	const devices = $derived(data.devices);
+	const devicesByRoom = $derived(data.devicesByRoom);
+	const rooms = $derived(data.rooms);
 	const canManage = $derived(data.canManageDevices);
 	const isOwner = $derived(data.isOwner);
 
@@ -35,7 +36,7 @@
 	<h1 class="mb-1 text-2xl">Devices</h1>
 	<p class="mb-6 text-foreground-muted">Things connected to {home.name}.</p>
 
-	{#if devices.length === 0}
+	{#if !devicesByRoom || devicesByRoom.length === 0}
 		<div class="mb-6 rounded-lg border border-line bg-surface-raised p-6 text-center">
 			<p class="mb-1 text-foreground">No devices yet.</p>
 			<p class="text-sm text-foreground-muted">
@@ -43,38 +44,43 @@
 			</p>
 		</div>
 	{:else}
-		<ul
-			class="mb-8 divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised"
-		>
-			{#each devices as device (device.id)}
-				<li class="flex items-center gap-3 px-4 py-3">
-					<span class="rounded-md bg-accent-soft p-2 text-accent">
-						<CpuIcon class="h-5 w-5" />
-					</span>
-					<div class="min-w-0 flex-1">
-						<p class="truncate text-foreground">{device.name}</p>
-						<p class="truncate text-xs text-foreground-subtle">
-							{DEVICE_TYPE_LABEL[device.device_type]} · {device.hardware_id}
-						</p>
-					</div>
-					<span class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}">
-						{device.status}
-					</span>
-					{#if isOwner}
-						<form method="POST" action="?/delete" onsubmit={(e) => confirmDelete(device.name, e)}>
-							<input type="hidden" name="id" value={device.id} />
-							<button
-								type="submit"
-								class="shrink-0 rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-soft"
-								aria-label="Delete {device.name}"
-							>
-								Delete
-							</button>
-						</form>
-					{/if}
-				</li>
-			{/each}
-		</ul>
+		{#each devicesByRoom as group (group.room?.id ?? 'unassigned')}
+			<div class="mb-6">
+				<h2 class="mb-3 text-lg font-medium text-foreground">
+					{group.room?.name ?? 'Unassigned'}
+				</h2>
+				<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
+					{#each group.devices as device (device.id)}
+						<li class="flex items-center gap-3 px-4 py-3">
+							<span class="rounded-md bg-accent-soft p-2 text-accent">
+								<CpuIcon class="h-5 w-5" />
+							</span>
+							<div class="min-w-0 flex-1">
+								<p class="truncate text-foreground">{device.name}</p>
+								<p class="truncate text-xs text-foreground-subtle">
+									{DEVICE_TYPE_LABEL[device.device_type]} · {device.hardware_id}
+								</p>
+							</div>
+							<span class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}">
+								{device.status}
+							</span>
+							{#if isOwner}
+								<form method="POST" action="?/delete" onsubmit={(e) => confirmDelete(device.name, e)}>
+									<input type="hidden" name="id" value={device.id} />
+									<button
+										type="submit"
+										class="shrink-0 rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-soft"
+										aria-label="Delete {device.name}"
+									>
+										Delete
+									</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/each}
 	{/if}
 
 	{#if canManage}
@@ -114,6 +120,20 @@
 					placeholder="e.g. esp32-aa-bb"
 					value={form?.values?.hardware_id ?? ''}
 				/>
+
+				{#if rooms && rooms.length > 0}
+					<label class="mb-3 flex flex-col gap-1">
+						<span class="text-sm">Room (optional)</span>
+						<select name="room_id">
+							<option value="">No room</option>
+							{#each rooms as room (room.id)}
+								<option value={room.id} selected={form?.values?.room_id === room.id}>
+									{room.name}
+								</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
 
 				<label class="mb-4 flex items-center gap-2 text-sm">
 					<input name="is_active" type="checkbox" checked />

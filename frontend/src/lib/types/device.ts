@@ -10,9 +10,32 @@ export type DeviceType =
 
 export type DeviceStatus = 'unknown' | 'online' | 'offline';
 
+export interface Room {
+	id: number;
+	home: number;
+	name: string;
+	description: string;
+	created_at: string;
+	updated_at: string;
+	devices?: Device[];
+}
+
+export interface CreateRoomPayload {
+	home: number;
+	name: string;
+	description?: string;
+}
+
+export interface UpdateRoomPayload {
+	name?: string;
+	description?: string;
+}
+
 export interface Device {
 	id: number;
 	home: Home;
+	room?: Room | null;
+	room_id?: number | null;
 	name: string;
 	device_type: DeviceType;
 	hardware_id: string;
@@ -28,6 +51,7 @@ export interface Device {
 
 export interface CreateDevicePayload {
 	home_id: number;
+	room_id?: number | null;
 	name: string;
 	device_type: DeviceType;
 	hardware_id: string;
@@ -35,6 +59,7 @@ export interface CreateDevicePayload {
 }
 
 export interface UpdateDevicePayload {
+	room_id?: number | null;
 	name?: string;
 	device_type?: DeviceType;
 	hardware_id?: string;

@@ -4,7 +4,7 @@ export function canManageHome(home: Home, userId: number): boolean {
 	if (home.owner.id === userId) return true;
 	const m = home.members.find((m) => m.user.id === userId);
 	if (!m) return false;
-	return m.role === 'admin' || m.can_manage_devices;
+	return m.role === 'admin';
 }
 
 export function canManageDevices(home: Home, userId: number): boolean {

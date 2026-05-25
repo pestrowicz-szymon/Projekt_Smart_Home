@@ -1,4 +1,5 @@
 import type { User } from './auth';
+import type { Room } from './room';
 
 export type HomeRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -16,6 +17,7 @@ export interface Home {
 	description: string;
 	owner: User;
 	members: HomeMember[];
+	rooms: Room[];
 	devices_count: number;
 	created_at: string;
 	updated_at: string;

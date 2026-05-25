@@ -1,18 +1,57 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { createDevice, deleteDevice, listDevices } from '$lib/server/endpoints/devices';
+import { createDevice, deleteDevice } from '$lib/server/endpoints/devices';
+import { listRooms } from '$lib/server/endpoints/rooms';
+import { listHomeDevices } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
-import { DEVICE_TYPES, type DeviceType } from '$lib/types/device';
+import { DEVICE_TYPES, type DeviceType, type Device, type Room } from '$lib/types/device';
 
 export const load: PageServerLoad = async ({ params, fetch, locals }) => {
 	if (!locals.token) throw redirect(303, '/login');
 
 	const homeId = Number(params.homeId);
-	const all = await listDevices(fetch, locals.token);
-	const devices = all.filter((d) => d.home.id === homeId);
+	const [devices, rooms] = await Promise.all([
+		listHomeDevices(fetch, locals.token, homeId),
+		listRooms(fetch, locals.token)
+	]);
 
-	return { devices };
+	// Filter rooms by home and group devices
+	const homeRooms = rooms.filter((r) => r.home === homeId);
+	const devicesByRoom = groupDevicesByRoom(devices, homeRooms);
+
+	return { devices, rooms: homeRooms, devicesByRoom };
 };
+
+function groupDevicesByRoom(
+	devices: Device[],
+	rooms: Room[]
+): { room: Room | null; devices: Device[] }[] {
+	const grouped: { [key: number]: Device[] } = { 0: [] };
+
+	// Group devices
+	devices.forEach((device) => {
+		const roomId = device.room_id ?? 0;
+		if (!grouped[roomId]) grouped[roomId] = [];
+		grouped[roomId].push(device);
+	});
+
+	// Build result with rooms
+	const result: { room: Room | null; devices: Device[] }[] = [];
+
+	// Add rooms with devices first
+	rooms.forEach((room) => {
+		if (grouped[room.id]) {
+			result.push({ room, devices: grouped[room.id] });
+		}
+	});
+
+	// Add unassigned devices last
+	if (grouped[0].length > 0) {
+		result.push({ room: null, devices: grouped[0] });
+	}
+
+	return result;
+}
 
 export const actions: Actions = {
 	create: async ({ request, params, fetch, locals }) => {
@@ -23,8 +62,10 @@ export const actions: Actions = {
 		const deviceTypeRaw = String(data.get('device_type') ?? '');
 		const hardwareId = String(data.get('hardware_id') ?? '').trim();
 		const isActive = data.get('is_active') === 'on';
+		const roomIdRaw = String(data.get('room_id') ?? '').trim();
+		const roomId = roomIdRaw ? Number(roomIdRaw) : undefined;
 
-		const values = { name, device_type: deviceTypeRaw, hardware_id: hardwareId };
+		const values = { name, device_type: deviceTypeRaw, hardware_id: hardwareId, room_id: roomId };
 
 		if (!name) return fail(400, { error: 'Name is required', values });
 		if (!DEVICE_TYPES.includes(deviceTypeRaw as DeviceType)) {
@@ -37,6 +78,7 @@ export const actions: Actions = {
 		try {
 			await createDevice(fetch, locals.token, {
 				home_id: Number(params.homeId),
+				room_id: roomId,
 				name,
 				device_type: deviceTypeRaw as DeviceType,
 				hardware_id: hardwareId,
