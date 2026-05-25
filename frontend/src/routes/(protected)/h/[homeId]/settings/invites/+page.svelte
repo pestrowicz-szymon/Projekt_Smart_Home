@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { copyToClipboard } from '$lib/utils/copy';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -14,14 +15,12 @@
 	});
 
 	async function handleCopy(code: string) {
-		try {
-			await navigator.clipboard.writeText(code);
+		const success = await copyToClipboard(code);
+		if (success) {
 			copiedCode = code;
 			setTimeout(() => {
 				copiedCode = null;
 			}, 2000);
-		} catch (err) {
-			console.error('Failed to copy:', err);
 		}
 	}
 
