@@ -60,13 +60,13 @@
 
 <div class="flex flex-col gap-6">
 	<div>
-		<h1 class="mb-1 text-2xl">Invitations</h1>
-		<p class="text-foreground-muted">Invite people to join your home.</p>
+		<h1 class="mb-1 text-2xl">Access Management</h1>
+		<p class="text-foreground-muted">Invite people or add them directly to your home.</p>
 	</div>
 
-	<!-- Create invite section -->
+	<!-- Generate invite code section -->
 	<section class="rounded-lg border border-line bg-surface-raised p-4">
-		<h2 class="mb-4 text-md font-medium text-foreground">Generate new invite</h2>
+		<h2 class="mb-4 text-md font-medium text-foreground">Generate invitation link</h2>
 
 		<form method="POST" action="?/create" class="flex flex-col gap-3">
 			<label class="flex flex-col gap-1">
@@ -80,7 +80,7 @@
 				</select>
 			</label>
 
-			{#if form?.error}
+			{#if form?.error && form?.action !== 'addById'}
 				<p class="text-danger">{form.error}</p>
 			{/if}
 
@@ -93,10 +93,53 @@
 		</form>
 	</section>
 
+	<!-- Add member by ID section -->
+	<section class="rounded-lg border border-line bg-surface-raised p-4">
+		<h2 class="mb-1 text-md font-medium text-foreground">Add member by ID</h2>
+		<p class="mb-4 text-sm text-foreground-muted">
+			Ask the person to share their User ID from their profile.
+		</p>
+
+		<form method="POST" action="?/addById" class="flex flex-col gap-3">
+			<label class="flex flex-col gap-1">
+				<span class="text-sm">User ID</span>
+				<input name="user_id" type="number" min="1" required placeholder="e.g. 42" />
+			</label>
+
+			<label class="flex flex-col gap-1">
+				<span class="text-sm">Role</span>
+				<select name="role">
+					<option value="member" selected>Member — can view and use</option>
+					<option value="admin">Admin — can manage members and devices</option>
+					<option value="viewer">Viewer — read-only access</option>
+				</select>
+			</label>
+
+			<label class="flex items-center gap-2 text-sm">
+				<input name="can_manage_devices" type="checkbox" />
+				Can manage devices (regardless of role)
+			</label>
+
+			{#if form?.error && form?.action === 'addById'}
+				<p class="text-danger">{form.error}</p>
+			{/if}
+			{#if form?.success && form?.action === 'addById'}
+				<p class="text-success">Member added successfully.</p>
+			{/if}
+
+			<button
+				type="submit"
+				class="self-start rounded-md bg-accent px-4 py-2 text-surface hover:bg-accent-hover"
+			>
+				Add member
+			</button>
+		</form>
+	</section>
+
 	<!-- Invites list -->
 	{#if invites && invites.length > 0}
 		<section>
-			<h2 class="mb-3 text-md font-medium text-foreground">Active invites</h2>
+			<h2 class="mb-3 text-md font-medium text-foreground">Invitation links</h2>
 			<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
 				{#each invites as invite (invite.id)}
 					{@const expired = isExpired(invite.expires_at)}
@@ -154,7 +197,7 @@
 		</section>
 	{:else}
 		<div class="rounded-lg border border-line bg-surface-raised p-6 text-center">
-			<p class="text-foreground-muted">No invites yet. Generate one to get started.</p>
+			<p class="text-foreground-muted">No invitation links yet. Generate one to get started.</p>
 		</div>
 	{/if}
 </div>

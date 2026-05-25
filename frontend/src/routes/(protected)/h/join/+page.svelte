@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
+	import FormField from '$lib/components/FormField.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	let copiedField = $state<string | null>(null);
 
@@ -57,20 +58,33 @@
 		</ul>
 	</section>
 
-	<section class="mb-6 rounded-lg border border-line bg-surface-raised p-4 opacity-60">
-		<div class="mb-2 flex items-center justify-between">
-			<h2 class="text-md font-medium text-foreground">Have an invite code?</h2>
-			<span class="rounded-pill bg-secondary-soft px-2 py-0.5 text-xs text-secondary">
-				Coming soon
-			</span>
-		</div>
-		<input
-			type="text"
-			placeholder="ABCD-1234"
-			disabled
-			class="w-full cursor-not-allowed"
-			aria-label="Invite code"
-		/>
+	<section class="mb-6 rounded-lg border border-line bg-surface-raised p-4">
+		<h2 class="mb-3 text-md font-medium text-foreground">Have an invite code?</h2>
+		<p class="mb-3 text-sm text-foreground-muted">
+			The home owner can generate an invite code to add you instantly.
+		</p>
+		<form method="POST" action="?/redeem" class="flex flex-col gap-3">
+			<FormField
+				name="code"
+				type="text"
+				required
+				label="Invite code"
+				placeholder="Paste the code here"
+				value={form?.values?.code ?? ''}
+				autocomplete="off"
+			/>
+
+			{#if form?.error}
+				<p class="text-danger">{form.error}</p>
+			{/if}
+
+			<button
+				type="submit"
+				class="rounded-md bg-accent px-4 py-2 text-surface hover:bg-accent-hover"
+			>
+				Join with code
+			</button>
+		</form>
 	</section>
 
 	<button

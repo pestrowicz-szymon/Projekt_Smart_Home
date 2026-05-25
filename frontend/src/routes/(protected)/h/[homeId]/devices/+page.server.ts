@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { createDevice, deleteDevice } from '$lib/server/endpoints/devices';
+import { createDevice, deleteDevice, updateDevice } from '$lib/server/endpoints/devices';
 import { listRooms } from '$lib/server/endpoints/rooms';
 import { listHomeDevices } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
@@ -96,6 +96,37 @@ export const actions: Actions = {
 					else if ('home_id' in body) msg = String((body as Record<string, unknown>).home_id);
 				}
 				return fail(err.status, { error: msg, values });
+			}
+			throw err;
+		}
+	},
+
+	update: async ({ request, fetch, locals }) => {
+		if (!locals.token) throw redirect(303, '/login');
+
+		const data = await request.formData();
+		const deviceId = Number(data.get('id'));
+		const name = String(data.get('name') ?? '').trim();
+		const roomIdRaw = String(data.get('room_id') ?? '').trim();
+		const roomId = roomIdRaw ? Number(roomIdRaw) : null;
+
+		if (!Number.isInteger(deviceId) || deviceId <= 0) return fail(400, { error: 'Invalid device id' });
+		if (!name) return fail(400, { error: 'Name is required' });
+
+		try {
+			await updateDevice(fetch, locals.token, deviceId, {
+				name,
+				room_id: roomId
+			});
+			return { success: true, updated: deviceId };
+		} catch (err) {
+			if (err instanceof ApiError) {
+				const body = err.body;
+				let msg = err.message;
+				if (body && typeof body === 'object') {
+					if ('detail' in body) msg = String((body as { detail: unknown }).detail);
+				}
+				return fail(err.status, { error: msg });
 			}
 			throw err;
 		}
