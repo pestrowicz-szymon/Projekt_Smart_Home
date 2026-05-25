@@ -1,22 +1,18 @@
 <script lang="ts">
 import { resolve } from '$app/paths';
 import { invalidateAll } from '$app/navigation';
+import toast from 'svelte-french-toast';
 import { copyToClipboard } from '$lib/utils/copy';
 import FormField from '$lib/components/FormField.svelte';
 import type { PageProps } from './$types';
 
 let { data, form }: PageProps = $props();
 
-let copiedField = $state<string | null>(null);
-
-async function copy(value: string, field: string) {
-const success = await copyToClipboard(value);
-if (success) {
-copiedField = field;
-setTimeout(() => {
-if (copiedField === field) copiedField = null;
-}, 1500);
-}
+async function copy(value: string) {
+await copyToClipboard(value, {
+onSuccess: () => toast.success('Copied to clipboard'),
+onError: () => toast.error('Failed to copy')
+});
 }
 </script>
 
@@ -48,10 +44,10 @@ Ask the owner to add you. They'll need one of the values below.
 </div>
 <button
 type="button"
-onclick={() => copy(data.user.id, 'id')}
+onclick={() => copy(data.user.id)}
 class="shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:border-line-accent"
 >
-{copiedField === 'id' ? 'Copied' : 'Copy'}
+Copy
 </button>
 </li>
 </ul>
