@@ -17,6 +17,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
     created_by = PublicUserSerializer(read_only=True)
     used_by = PublicUserSerializer(read_only=True)
     status = serializers.SerializerMethodField()
+    code = serializers.SerializerMethodField()
 
     class Meta:
         model = HomeInvite
@@ -28,7 +29,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
             "used_by",
             "used_at",
             "revoked_at",
-            "code_hash",
+            "code",
             "status",
             "created_at",
             "updated_at",
@@ -41,7 +42,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
             "used_by",
             "used_at",
             "revoked_at",
-            "code_hash",
+            "code",
             "status",
             "created_at",
             "updated_at",
@@ -53,6 +54,9 @@ class HomeInviteSerializer(serializers.ModelSerializer):
         if obj.used_at is not None:
             return "used"
         return "active" if obj.expires_at > timezone.now() else "expired"
+
+    def get_code(self, obj):
+        return self.context.get("code")
 
 
 class HomeInviteCreateSerializer(serializers.Serializer):

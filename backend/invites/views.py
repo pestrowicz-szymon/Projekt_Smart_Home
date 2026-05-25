@@ -100,9 +100,8 @@ def home_invites(request, home_id):
     serializer = HomeInviteCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     invite, raw_code = create_home_invite(home=home, created_by=request.user)
-    response_data = HomeInviteSerializer(invite).data
-    response_data['code'] = raw_code
-    return Response(response_data, status=status.HTTP_201_CREATED)
+    serializer = HomeInviteSerializer(invite, context={'code': raw_code})
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(
