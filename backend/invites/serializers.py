@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
-from rest_framework import serializers
 from django.utils import timezone
+from rest_framework import serializers
 
 from devices.models import HomeMember
 
@@ -10,7 +10,7 @@ from .models import HomeInvite
 class PublicUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name')
+        fields = ("id", "first_name", "last_name")
 
 
 class HomeInviteSerializer(serializers.ModelSerializer):
@@ -21,17 +21,38 @@ class HomeInviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeInvite
         fields = (
-            'id', 'home', 'created_by', 'expires_at', 'used_by', 'used_at', 'revoked_at',
-            'status', 'created_at', 'updated_at',
+            "id",
+            "home",
+            "created_by",
+            "expires_at",
+            "used_by",
+            "used_at",
+            "revoked_at",
+            "code_hash",
+            "status",
+            "created_at",
+            "updated_at",
         )
-        read_only_fields = ('id', 'home', 'created_by', 'expires_at', 'used_by', 'used_at', 'revoked_at', 'status', 'created_at', 'updated_at')
+        read_only_fields = (
+            "id",
+            "home",
+            "created_by",
+            "expires_at",
+            "used_by",
+            "used_at",
+            "revoked_at",
+            "code_hash",
+            "status",
+            "created_at",
+            "updated_at",
+        )
 
     def get_status(self, obj):
         if obj.revoked_at is not None:
-            return 'revoked'
+            return "revoked"
         if obj.used_at is not None:
-            return 'used'
-        return 'active' if obj.expires_at > timezone.now() else 'expired'
+            return "used"
+        return "active" if obj.expires_at > timezone.now() else "expired"
 
 
 class HomeInviteCreateSerializer(serializers.Serializer):
@@ -42,7 +63,7 @@ class HomeInviteRedeemSerializer(serializers.Serializer):
     code = serializers.CharField(
         max_length=64,
         trim_whitespace=True,
-        help_text='Invitation code from the invite link or QR code. Send it in POST /api/invites/invites/redeem/.',
+        help_text="Invitation code from the invite link or QR code. Send it in POST /api/invites/invites/redeem/.",
     )
 
 
@@ -51,5 +72,5 @@ class HomeMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HomeMember
-        fields = ('id', 'home', 'user', 'role', 'can_manage_devices', 'created_at')
-        read_only_fields = ('id', 'home', 'user', 'created_at')
+        fields = ("id", "home", "user", "role", "can_manage_devices", "created_at")
+        read_only_fields = ("id", "home", "user", "created_at")

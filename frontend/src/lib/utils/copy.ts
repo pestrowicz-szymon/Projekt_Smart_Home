@@ -1,4 +1,6 @@
-export async function copyToClipboard(
+import toast from 'svelte-french-toast';
+
+async function copyToClipboard(
 	text: string,
 	options?: { onSuccess?: () => void; onError?: () => void }
 ): Promise<boolean> {
@@ -18,3 +20,9 @@ export async function copyToClipboard(
 	}
 }
 
+export async function copy(value: string) {
+	await copyToClipboard(value, {
+		onSuccess: () => toast.success('Copied to clipboard'),
+		onError: () => toast.error('Failed to copy')
+	});
+}

@@ -5,7 +5,7 @@ import { ApiError } from '$lib/server/endpoints/client';
 
 export const load: PageServerLoad = ({ locals }) => {
 	if (!locals.user) throw redirect(303, '/login');
-	return { user: locals.user };
+	return { user: locals.user, token: locals.token };
 };
 
 export const actions: Actions = {
@@ -13,14 +13,13 @@ export const actions: Actions = {
 		if (!locals.token) throw redirect(303, '/login');
 
 		const data = await request.formData();
-		const code = String(data.get('code') ?? '').trim().toUpperCase();
+		const code = String(data.get('code') ?? '').trim();
 
 		if (!code) return fail(400, { error: 'Invite code is required' });
 		if (code.length < 8) return fail(400, { error: 'Invalid invite code format' });
 
 		try {
-			const member = await redeemInvite(fetch, { code });
-			// Redirect to the home they were added to
+			const member = await redeemInvite(fetch, locals.token, { code }); // Redirect to the home they were added to
 			throw redirect(303, `/h/${member.home}`);
 		} catch (err) {
 			if (err instanceof ApiError) {
@@ -37,4 +36,3 @@ export const actions: Actions = {
 		}
 	}
 };
-

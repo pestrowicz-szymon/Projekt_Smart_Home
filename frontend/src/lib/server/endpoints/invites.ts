@@ -12,7 +12,7 @@ export interface HomeInvite {
 		first_name: string;
 		last_name: string;
 	};
-	code?: string;
+	code_hash: string;
 	expires_at: string;
 	used_by: null | {
 		id: number;
@@ -74,7 +74,11 @@ export function revokeHomeInvite(fetch: FetchFn, token: string, homeId: number, 
 	});
 }
 
-export function redeemInvite(fetch: FetchFn, body: RedeemInvitePayload) {
+export function redeemInvite(fetch: FetchFn, token: string, body: RedeemInvitePayload) {
 	log.debug({ code: body.code.substring(0, 8) + '...' }, 'Redeeming invite');
-	return apiFetch<HomeMember>(fetch, '/api/invites/redeem/', { method: 'POST', body });
+	return apiFetch<HomeMember>(fetch, '/api/invites/invites/redeem/', {
+		method: 'POST',
+		body,
+		token
+	});
 }
