@@ -13,12 +13,16 @@
 		}
 	});
 
-	function copyToClipboard(code: string) {
-		navigator.clipboard.writeText(code);
-		copiedCode = code;
-		setTimeout(() => {
-			copiedCode = null;
-		}, 2000);
+	async function handleCopy(code: string) {
+		try {
+			await navigator.clipboard.writeText(code);
+			copiedCode = code;
+			setTimeout(() => {
+				copiedCode = null;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy:', err);
+		}
 	}
 
 	function getInviteLink(code: string): string {
@@ -169,7 +173,7 @@
 							<div class="flex flex-shrink-0 gap-2">
 								<button
 									type="button"
-									onclick={() => copyToClipboard(invite.code || '')}
+									onclick={() => handleCopy(invite.code || '')}
 									class="rounded-md px-2 py-1 text-xs {copiedCode === invite.code
 										? 'bg-success-soft text-success'
 										: 'text-accent hover:bg-accent-soft'}"
