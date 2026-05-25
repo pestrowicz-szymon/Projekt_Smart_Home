@@ -2,6 +2,11 @@ export async function copyToClipboard(
 	text: string,
 	options?: { onSuccess?: () => void; onError?: () => void }
 ): Promise<boolean> {
+	if (!text || text.trim() === '') {
+		options?.onError?.();
+		return false;
+	}
+
 	try {
 		await navigator.clipboard.writeText(text);
 		options?.onSuccess?.();
