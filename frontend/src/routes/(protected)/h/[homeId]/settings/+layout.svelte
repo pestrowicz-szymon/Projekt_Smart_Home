@@ -10,6 +10,7 @@
 
 	const onGeneral = $derived(pathname.endsWith('/settings/general'));
 	const onMembers = $derived(pathname.endsWith('/settings/members'));
+	const onInvites = $derived(pathname.endsWith('/settings/invites'));
 	const onDanger = $derived(pathname.endsWith('/settings/danger'));
 
 	const tabBase = 'shrink-0 border-b-2 px-4 py-2 text-sm transition-colors';
@@ -38,6 +39,13 @@
 			aria-current={onMembers ? 'page' : undefined}
 		>
 			Members
+		</a>
+		<a
+			href={resolve(`/h/${homeId}/settings/invites`)}
+			class="{tabBase} {onInvites ? tabActive : tabIdle}"
+			aria-current={onInvites ? 'page' : undefined}
+		>
+			Access
 		</a>
 		<a
 			href={resolve(`/h/${homeId}/settings/danger`)}
