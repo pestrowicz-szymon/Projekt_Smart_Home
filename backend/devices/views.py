@@ -19,6 +19,14 @@ ROOM_ID_QUERY_PARAMETER = OpenApiParameter(
 	description='Filter devices by room id.',
 )
 
+HOME_ID_QUERY_PARAMETER = OpenApiParameter(
+	name='home_id',
+	type=OpenApiTypes.INT,
+	location=OpenApiParameter.QUERY,
+	required=False,
+	description='Filter rooms by home id.',
+)
+
 HOME_MEMBER_CREATE_EXAMPLE = OpenApiExample(
 	'Add home member',
 	value={
@@ -210,7 +218,7 @@ class HomeViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-	list=extend_schema(tags=['rooms'], summary='List rooms', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
+	list=extend_schema(tags=['rooms'], summary='List rooms', parameters=[HOME_ID_QUERY_PARAMETER], examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
 	retrieve=extend_schema(tags=['rooms'], summary='Get room details', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
 	create=extend_schema(tags=['rooms'], summary='Create room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
 	update=extend_schema(tags=['rooms'], summary='Update room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
@@ -224,6 +232,9 @@ class RoomViewSet(viewsets.ModelViewSet):
 	def get_queryset(self):
 		user = self.request.user
 		queryset = Room.objects.select_related('home', 'home__owner').prefetch_related('devices')
+		home_id = self.request.query_params.get('home_id')
+		if home_id:
+			queryset = queryset.filter(home_id=home_id)
 		if user.is_superuser:
 			return queryset
 		return queryset.filter(Q(home__owner=user) | Q(home__memberships__user=user)).distinct()
