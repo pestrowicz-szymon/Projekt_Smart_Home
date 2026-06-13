@@ -5,10 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema, extend_schema_view
 
+from .mqtt_bridge import publish_device_action
 from .models import Device, DeviceAction, Home, Room, SensorData
 from .permissions import CanAccessDevice, CanAccessHome, CanAccessRoom, CanDeleteDevice, user_has_home_access
 from .serializers import DeviceActionSerializer, DeviceCommandCreateSerializer, DeviceSerializer, HomeMemberSerializer, HomeSerializer, RoomSerializer, SensorDataCreateSerializer, SensorDataSerializer
-from .services import enqueue_device_action, record_sensor_reading
+from .services import enqueue_device_action, mark_action_failed, mark_action_sent, record_sensor_reading
 
 
 ROOM_ID_QUERY_PARAMETER = OpenApiParameter(
@@ -317,6 +318,15 @@ class DeviceViewSet(viewsets.ModelViewSet):
 			payload=serializer.validated_data.get('payload', {}),
 			source='api',
 		)
+		try:
+			publish_device_action(action)
+			mark_action_sent(action)
+		except Exception as exc:
+			mark_action_failed(action)
+			return Response(
+				{'detail': f'Unable to publish device action to the MQTT broker: {exc}'},
+				status=status.HTTP_503_SERVICE_UNAVAILABLE,
+			)
 		return Response(DeviceActionSerializer(action).data, status=status.HTTP_201_CREATED)
 
 

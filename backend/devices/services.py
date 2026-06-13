@@ -14,6 +14,10 @@ def build_command_topic(home_id: int, hardware_id: str) -> str:
     return f'homes/{home_id}/devices/{hardware_id}/commands'
 
 
+def build_command_ack_topic(home_id: int, hardware_id: str) -> str:
+	return f'homes/{home_id}/devices/{hardware_id}/commands/ack'
+
+
 @transaction.atomic
 def record_sensor_reading(*, device: Device, metric_name: str, value=None, unit: str = '', payload: dict | None = None, source: str = 'mq') -> SensorData:
     reading = SensorData.objects.create(
