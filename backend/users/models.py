@@ -1,11 +1,26 @@
-from django.db import models
+import uuid
+
 from django.contrib.auth.models import User
+from django.db import models
 
-# We're using Django's built-in User model
-# You can extend it here if needed in the future
 
-# Example future extension:
-# class UserProfile(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     phone = models.CharField(max_length=15, blank=True)
-#     address = models.TextField(blank=True)
+class UserMFASettings(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mfa_settings')
+	secret = models.CharField(max_length=64, blank=True, default='')
+	enabled = models.BooleanField(default=False)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	def __str__(self):
+		return f'MFA settings for {self.user.username}'
+
+
+class UserMFALoginChallenge(models.Model):
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mfa_login_challenges')
+	token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+	expires_at = models.DateTimeField()
+	consumed_at = models.DateTimeField(blank=True, null=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f'MFA login challenge for {self.user.username}'
