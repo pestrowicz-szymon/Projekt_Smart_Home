@@ -1,19 +1,45 @@
 <script lang="ts">
 	import type { PageProps, ActionData } from './$types';
 	import type { Device, Room } from '$lib/types/device';
-	import { untrack } from 'svelte';
 	import DeviceCard from '$lib/components/DeviceCard.svelte';
 	import { Thermometer, Light, Lock } from '$lib/components/devices';
+	import { deviceStore } from '$lib/stores/devices.svelte';
 
 	let { data }: { data: PageProps['data']; form: ActionData } = $props();
 
 	const displayName = $derived(data.user.first_name || data.user.username);
 
 	type DeviceGroup = { room: Room | null; devices: Device[] };
-	// Initialize with grouped devices to avoid SSR flicker, sync with $effect
-	let devicesByRoom = $state<DeviceGroup[]>(untrack(() => data.devicesByRoom));
-	$effect(() => {
-		devicesByRoom = data.devicesByRoom;
+
+	const devicesByRoom = $derived.by(() => {
+		const rooms = data.rooms;
+		const devices = deviceStore.devices;
+
+		const grouped: { [key: number]: Device[] } = { 0: [] };
+
+		// Group devices
+		devices.forEach((device) => {
+			const roomId = device.room_id ?? device.room?.id ?? 0;
+			if (!grouped[roomId]) grouped[roomId] = [];
+			grouped[roomId].push(device);
+		});
+
+		// Build result with rooms
+		const result: { room: Room | null; devices: Device[] }[] = [];
+
+		// Add rooms with devices first
+		rooms.forEach((room) => {
+			if (grouped[room.id]) {
+				result.push({ room, devices: grouped[room.id] });
+			}
+		});
+
+		// Add unassigned devices last
+		if (grouped[0].length > 0) {
+			result.push({ room: null, devices: grouped[0] });
+		}
+
+		return result;
 	});
 </script>
 

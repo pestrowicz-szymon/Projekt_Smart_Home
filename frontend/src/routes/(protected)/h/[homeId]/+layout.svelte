@@ -1,8 +1,8 @@
 <script lang="ts">
 	import DeviceRefresher from '$lib/components/DeviceRefresher.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 </script>
 
-<DeviceRefresher />
+<DeviceRefresher initialDevices={data.devices} />
 {@render children()}

@@ -25,9 +25,13 @@ export function me(fetch: FetchFn, token: string) {
 	return apiFetch<User>(fetch, '/api/users/me/', { token });
 }
 
-export function logout(fetch: FetchFn, token: string) {
+export function logout(fetch: FetchFn, token: string, refresh: string) {
 	log.debug('Logging out');
-	return apiFetch<{ message: string }>(fetch, '/api/users/logout/', { method: 'POST', token });
+	return apiFetch<{ message: string }>(fetch, '/api/users/logout/', {
+		method: 'POST',
+		token,
+		body: { refresh }
+	});
 }
 
 export function refreshAccessToken(fetch: FetchFn, refresh: string) {

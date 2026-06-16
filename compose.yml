@@ -1,34 +1,33 @@
 services:
-  db:
-    image: postgres:18.0
-    environment:
-      - POSTGRES_DB=smarthome_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_HOST=localhost
-      - POSTGRES_PORT=5432
+    db:
+        image: postgres:18.0
+        environment:
+            - POSTGRES_DB=smarthome_db
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=admin
+            - POSTGRES_HOST=localhost
+            - POSTGRES_PORT=5432
 
-    ports:
-      - "5432:5432"
-    volumes:
-      - smart_home_postgres_volume:/var/lib/postgresql
+        ports:
+            - "5432:5432"
+        volumes:
+            - smart_home_postgres_volume:/var/lib/postgresql
 
-  mosquitto:
-    image: eclipse-mosquitto:2
-    ports:
-      - "1883:1883"
-      - "8883:8883"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
+    mosquitto:
+        image: eclipse-mosquitto:2
+        ports:
+            - "8883:8883"
+        volumes:
+            - ./mosquitto/config:/mosquitto/config
+            - ./mosquitto/data:/mosquitto/data
+            - ./mosquitto/log:/mosquitto/log
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: ./frontend/Containerfile
-    ports:
-      - "5173:5173"
+    # frontend:
+    #   build:
+    #     context: ./frontend
+    #     dockerfile: ./frontend/Containerfile
+    #   ports:
+    #     - "5173:5173"
 
 volumes:
-  smart_home_postgres_volume:
+    smart_home_postgres_volume:
