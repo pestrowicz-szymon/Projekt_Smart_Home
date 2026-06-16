@@ -5,10 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema, extend_schema_view
 
+from .mqtt_bridge import publish_device_action
 from .models import Device, DeviceAction, Home, Room, SensorData
 from .permissions import CanAccessDevice, CanAccessHome, CanAccessRoom, CanDeleteDevice, user_has_home_access
 from .serializers import DeviceActionSerializer, DeviceCommandCreateSerializer, DeviceSerializer, HomeMemberSerializer, HomeSerializer, RoomSerializer, SensorDataCreateSerializer, SensorDataSerializer
-from .services import enqueue_device_action, record_sensor_reading
+from .services import enqueue_device_action, mark_action_failed, mark_action_sent, record_sensor_reading
 
 
 ROOM_ID_QUERY_PARAMETER = OpenApiParameter(
@@ -17,6 +18,14 @@ ROOM_ID_QUERY_PARAMETER = OpenApiParameter(
 	location=OpenApiParameter.QUERY,
 	required=False,
 	description='Filter devices by room id.',
+)
+
+HOME_ID_QUERY_PARAMETER = OpenApiParameter(
+	name='home_id',
+	type=OpenApiTypes.INT,
+	location=OpenApiParameter.QUERY,
+	required=False,
+	description='Filter rooms by home id.',
 )
 
 HOME_MEMBER_CREATE_EXAMPLE = OpenApiExample(
@@ -210,7 +219,7 @@ class HomeViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-	list=extend_schema(tags=['rooms'], summary='List rooms', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
+	list=extend_schema(tags=['rooms'], summary='List rooms', parameters=[HOME_ID_QUERY_PARAMETER], examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer(many=True)),
 	retrieve=extend_schema(tags=['rooms'], summary='Get room details', examples=[ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
 	create=extend_schema(tags=['rooms'], summary='Create room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
 	update=extend_schema(tags=['rooms'], summary='Update room', request=RoomSerializer, examples=[ROOM_CREATE_EXAMPLE, ROOM_RESPONSE_EXAMPLE], responses=RoomSerializer),
@@ -224,6 +233,9 @@ class RoomViewSet(viewsets.ModelViewSet):
 	def get_queryset(self):
 		user = self.request.user
 		queryset = Room.objects.select_related('home', 'home__owner').prefetch_related('devices')
+		home_id = self.request.query_params.get('home_id')
+		if home_id:
+			queryset = queryset.filter(home_id=home_id)
 		if user.is_superuser:
 			return queryset
 		return queryset.filter(Q(home__owner=user) | Q(home__memberships__user=user)).distinct()
@@ -317,6 +329,15 @@ class DeviceViewSet(viewsets.ModelViewSet):
 			payload=serializer.validated_data.get('payload', {}),
 			source='api',
 		)
+		try:
+			publish_device_action(action)
+			mark_action_sent(action)
+		except Exception as exc:
+			mark_action_failed(action)
+			return Response(
+				{'detail': f'Unable to publish device action to the MQTT broker: {exc}'},
+				status=status.HTTP_503_SERVICE_UNAVAILABLE,
+			)
 		return Response(DeviceActionSerializer(action).data, status=status.HTTP_201_CREATED)
 
 

@@ -1,33 +1,73 @@
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
+from datetime import timedelta
+import json
+
+import pyotp
+from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
 
-from devices.models import HomeMember
+from .models import UserMFALoginChallenge, UserMFASettings
+from .serializers import MFALoginVerifySerializer, MFASetupVerifySerializer, RegisterSerializer, UserSerializer
 
-from .serializers import HomeMembershipSerializer, HomeMembershipUpdateSerializer, RegisterSerializer, UserSerializer
+
+MFA_CHALLENGE_LIFETIME = timedelta(minutes=5)
 
 
-def user_can_manage_home_members(user, membership: HomeMember) -> bool:
-    if not user or not user.is_authenticated:
+def _request_payload(request):
+    data = request.data
+
+    if isinstance(data, dict):
+        return data
+
+    if hasattr(data, 'dict'):
+        return data.dict()
+
+    if isinstance(data, (bytes, bytearray)):
+        data = data.decode('utf-8')
+
+    if isinstance(data, str):
+        data = data.strip()
+        if not data:
+            return {}
+        try:
+            parsed = json.loads(data)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+
+    return {}
+
+
+def _issue_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'user': UserSerializer(user).data,
+    }
+
+
+def _get_or_create_mfa_settings(user):
+    settings, _ = UserMFASettings.objects.get_or_create(user=user)
+    return settings
+
+
+def _verify_totp(secret: str, code: str) -> bool:
+    if not secret:
         return False
-    home = membership.home
-    if user.is_superuser or home.owner_id == user.id:
-        return True
-    owner_membership = home.memberships.filter(user=user).first()
-    if owner_membership is None:
-        return False
-    return owner_membership.role in {HomeMember.Role.ADMIN, HomeMember.Role.OWNER}
+    totp = pyotp.TOTP(secret)
+    return bool(totp.verify(code, valid_window=1))
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
     """Register a new user"""
-    serializer = RegisterSerializer(data=request.data)
+    serializer = RegisterSerializer(data=_request_payload(request))
     if serializer.is_valid():
         serializer.save()
         return Response(
@@ -44,22 +84,110 @@ def get_user(request):
     return Response(serializer.data)
 
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    """Login endpoint - zwraca tokeny + dane użytkownika"""
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login(request):
+    payload = _request_payload(request)
+    mfa_token = payload.get('mfa_token')
+    if mfa_token:
+        serializer = MFALoginVerifySerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
 
-    def post(self, request, *args, **kwargs):
-        # Standardowa logika logowania (walidacja + generowanie tokenów)
-        response = super().post(request, *args, **kwargs)
+        try:
+            challenge = UserMFALoginChallenge.objects.select_related('user').get(token=serializer.validated_data['mfa_token'])
+        except UserMFALoginChallenge.DoesNotExist:
+            return Response({'detail': 'Invalid MFA challenge.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Jeśli logowanie się powiodło, dodaj dane użytkownika
-        if response.status_code == 200:
-            try:
-                user = User.objects.get(username=request.data.get("username"))
-                response.data["user"] = UserSerializer(user).data
-            except User.DoesNotExist:
-                pass
+        if challenge.consumed_at is not None or challenge.expires_at <= timezone.now():
+            return Response({'detail': 'MFA challenge expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return response
+        settings = _get_or_create_mfa_settings(challenge.user)
+        if not settings.enabled or not _verify_totp(settings.secret, serializer.validated_data['mfa_code']):
+            return Response({'detail': 'Invalid MFA code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        challenge.consumed_at = timezone.now()
+        challenge.save(update_fields=['consumed_at'])
+        return Response(_issue_tokens(challenge.user), status=status.HTTP_200_OK)
+
+    username = payload.get('username')
+    password = payload.get('password')
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return Response({'detail': 'No active account found with the given credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    settings = _get_or_create_mfa_settings(user)
+    if settings.enabled and settings.secret:
+        challenge = UserMFALoginChallenge.objects.create(
+            user=user,
+            expires_at=timezone.now() + MFA_CHALLENGE_LIFETIME,
+        )
+        return Response(
+            {
+                'mfa_required': True,
+                'mfa_token': str(challenge.token),
+                'expires_at': challenge.expires_at,
+                'user': UserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(_issue_tokens(user), status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def mfa_status(request):
+    settings = _get_or_create_mfa_settings(request.user)
+    return Response({'enabled': settings.enabled}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mfa_setup(request):
+    settings = _get_or_create_mfa_settings(request.user)
+    if not settings.secret:
+        settings.secret = pyotp.random_base32()
+        settings.enabled = False
+        settings.save(update_fields=['secret', 'enabled', 'updated_at'])
+
+    totp = pyotp.TOTP(settings.secret)
+    return Response(
+        {
+            'mfa_enabled': settings.enabled,
+            'secret': settings.secret,
+            'otpauth_uri': totp.provisioning_uri(name=request.user.username, issuer_name='Smart Home'),
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mfa_verify_setup(request):
+    serializer = MFASetupVerifySerializer(data=_request_payload(request))
+    serializer.is_valid(raise_exception=True)
+
+    settings = _get_or_create_mfa_settings(request.user)
+    if not settings.secret:
+        return Response({'detail': 'MFA setup has not been initialized.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not _verify_totp(settings.secret, serializer.validated_data['code']):
+        return Response({'detail': 'Invalid MFA code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    settings.enabled = True
+    settings.save(update_fields=['enabled', 'updated_at'])
+    return Response({'enabled': True}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mfa_disable(request):
+    settings = _get_or_create_mfa_settings(request.user)
+    settings.enabled = False
+    settings.secret = ''
+    settings.save(update_fields=['enabled', 'secret', 'updated_at'])
+    UserMFALoginChallenge.objects.filter(user=request.user).delete()
+    return Response({'detail': 'MFA disabled.'}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
