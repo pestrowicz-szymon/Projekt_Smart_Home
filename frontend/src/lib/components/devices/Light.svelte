@@ -37,7 +37,7 @@
 		<button
 			type="submit"
 			disabled={loading}
-			class="relative flex h-8 min-w-[5.5rem] items-center justify-center rounded-md bg-accent px-3 py-1.5 text-sm text-surface hover:bg-accent-hover disabled:opacity-50"
+			class="relative flex h-8 min-w-22 items-center justify-center rounded-md bg-accent px-3 py-1.5 text-sm text-surface hover:bg-accent-hover disabled:opacity-50"
 		>
 			{#if loading}
 				<span

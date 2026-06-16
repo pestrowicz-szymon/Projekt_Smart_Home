@@ -4,13 +4,15 @@ import { listRooms, createRoom, updateRoom, deleteRoom } from '$lib/server/endpo
 import { listHomeDevices } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
 
-export const load: PageServerLoad = async ({ params, fetch, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, locals, depends }) => {
 	if (!locals.token) throw redirect(303, '/login');
 
 	const homeId = Number(params.homeId);
+	depends('app:devices');
+
 	const [allRooms, devices] = await Promise.all([
 		listRooms(fetch, locals.token),
-		listHomeDevices(fetch, locals.token, homeId)
+		listHomeDevices(fetch, locals.token, homeId).then((ds) => ds.sort((a, b) => a.id - b.id))
 	]);
 
 	const rooms = allRooms.filter((r) => r.home === homeId);
