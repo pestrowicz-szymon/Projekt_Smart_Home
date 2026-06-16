@@ -1,9 +1,11 @@
 import asyncio
+import json
 import logging
 import os
 import random
 import time
 
+import paho.mqtt.client as mqtt
 import requests
 
 
@@ -14,8 +16,9 @@ def load_env(file_path=".env"):
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):
-                    key, value = line.split("=", 1)
-                    os.environ[key.strip()] = value.strip()
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        os.environ[key.strip()] = value.strip()
 
 
 # Load configuration
@@ -26,6 +29,9 @@ USERNAME = os.getenv("USERNAME", "admin")
 PASSWORD = os.getenv("PASSWORD", "admin")
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "5"))
 BATTERY_DRAIN_INTERVAL = int(os.getenv("BATTERY_DRAIN_INTERVAL", "60"))
+
+MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -40,7 +46,9 @@ class SmartHomeSimulator:
         self.access_token = None
         self.refresh_token = None
         self.device_tasks = {}  # hardware_id -> Task
+        self.device_states = {}  # hardware_id -> dict with current state
         self.running = True
+        self.mqtt_client = None
 
     async def login(self):
         logging.info(f"Logging in to {self.api_url} as {self.username}...")
@@ -83,7 +91,6 @@ class SmartHomeSimulator:
             return response.json()
         except Exception as e:
             logging.error(f"Failed to fetch devices: {e}")
-            # If 401, try to re-login? For now just return empty
             if (
                 isinstance(e, requests.exceptions.HTTPError)
                 and e.response.status_code == 401
@@ -114,7 +121,6 @@ class SmartHomeSimulator:
             return False
 
     async def patch_device(self, device_id, data):
-        # We need to send a PATCH request to the device endpoint
         url = f"{self.api_url}/devices/devices/{device_id}/"
 
         def do_patch():
@@ -130,6 +136,39 @@ class SmartHomeSimulator:
             logging.error(f"Failed to patch device {device_id}: {e}")
             return False
 
+    def on_mqtt_connect(self, client, userdata, flags, reason_code, properties):
+        logging.info(f"Connected to MQTT broker with result code: {reason_code}")
+        client.subscribe("homes/+/devices/+/commands")
+
+    def on_mqtt_message(self, client, userdata, msg):
+        try:
+            payload = json.loads(msg.payload.decode())
+            topic_parts = msg.topic.split("/")
+            # homes/{home_id}/devices/{hardware_id}/commands
+            home_id = topic_parts[1]
+            hardware_id = topic_parts[3]
+
+            if hardware_id in self.device_states:
+                action_type = payload.get("action_type")
+                correlation_id = payload.get("correlation_id")
+
+                logging.info(f"Received action {action_type} for {hardware_id}")
+
+                # Update internal state based on action
+                if action_type in ["turn_on", "unlock"]:
+                    self.device_states[hardware_id]["current_state"] = 1.0
+                elif action_type in ["turn_off", "lock"]:
+                    self.device_states[hardware_id]["current_state"] = 0.0
+
+                # Send ACK back to backend
+                ack_topic = f"homes/{home_id}/devices/{hardware_id}/commands/ack"
+                ack_payload = {"correlation_id": correlation_id, "status": "success"}
+                client.publish(ack_topic, json.dumps(ack_payload))
+                logging.info(f"Sent ACK for action {action_type} on {hardware_id}")
+
+        except Exception as e:
+            logging.error(f"Error handling MQTT message: {e}")
+
     async def simulate_device(self, device_data):
         device_id = device_data["id"]
         name = device_data["name"]
@@ -144,10 +183,17 @@ class SmartHomeSimulator:
 
         battery = state_payload.get("battery", 100)
         current_state = device_data.get("current_state") or 0.0
+
+        # Initialize shared state
+        self.device_states[hardware_id] = {"current_state": current_state}
+
         last_battery_update = time.time()
 
         try:
             while self.running:
+                # Read from shared state (might have been updated by MQTT)
+                current_state = self.device_states[hardware_id]["current_state"]
+
                 match device_type:
                     case "thermometer":
                         current_state += (
@@ -155,6 +201,9 @@ class SmartHomeSimulator:
                             * random.binomialvariate(1, 0.05)
                             * (-1) ** random.choice([0, 1])
                         )
+                        # Update shared state back
+                        self.device_states[hardware_id]["current_state"] = current_state
+
                         await self.update_reading(
                             device_id, "temperature", current_state, "°C"
                         )
@@ -166,23 +215,29 @@ class SmartHomeSimulator:
                     case "smoke_detector":
                         if current_state == 0:
                             if random.random() > 0.995:
-                                smoke_val = 1
+                                current_state = 1
+                                self.device_states[hardware_id]["current_state"] = (
+                                    current_state
+                                )
                                 await self.update_reading(
-                                    device_id, "smoke_level", smoke_val
+                                    device_id, "smoke_level", current_state
                                 )
                                 await self.patch_device(
-                                    device_id, {"current_state": smoke_val}
+                                    device_id, {"current_state": current_state}
                                 )
                                 logging.warning(f"[{name}] SMOKE DETECTED")
                             else:
                                 logging.info(f"[{name}] smoke not detected")
                         elif random.random() > 0.9:
-                            smoke_val = 0
+                            current_state = 0
+                            self.device_states[hardware_id]["current_state"] = (
+                                current_state
+                            )
                             await self.update_reading(
-                                device_id, "smoke_level", smoke_val
+                                device_id, "smoke_level", current_state
                             )
                             await self.patch_device(
-                                device_id, {"current_state": smoke_val}
+                                device_id, {"current_state": current_state}
                             )
                             logging.warning(f"[{name}] smoke not detected anymore")
                         else:
@@ -190,17 +245,22 @@ class SmartHomeSimulator:
 
                     case "generic_sensor":
                         val = random.normalvariate(0, 0.05)
-                        # values between 0 and 100
                         current_state = round(max(0, min(current_state + val, 100)), 2)
+                        self.device_states[hardware_id]["current_state"] = current_state
                         await self.update_reading(device_id, "value", current_state)
                         await self.patch_device(
                             device_id, {"current_state": current_state}
                         )
-                        logging.info(f"[{name}] Value: {val}")
+                        logging.info(f"[{name}] Value: {current_state}")
 
-                    case "actuator":
+                    case "actuator" | "light" | "lock":
                         await self.update_reading(device_id, "status", current_state)
-                        logging.info(f"[{name}] Actuator state: {current_state}")
+                        await self.patch_device(
+                            device_id, {"current_state": current_state}
+                        )
+                        logging.info(
+                            f"[{name}] {device_type.capitalize()} state: {current_state}"
+                        )
 
                 # Battery state
                 now = time.time()
@@ -218,6 +278,8 @@ class SmartHomeSimulator:
 
         except asyncio.CancelledError:
             logging.info(f"STOP simulation: {name}")
+            if hardware_id in self.device_states:
+                del self.device_states[hardware_id]
         except Exception as e:
             logging.error(f"ERROR in {name} simulation: {e}")
 
@@ -225,6 +287,20 @@ class SmartHomeSimulator:
         if not await self.login():
             logging.error("Initial login failed. Exiting.")
             return
+
+        # Start MQTT client
+        self.mqtt_client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2
+        )
+        self.mqtt_client.on_connect = self.on_mqtt_connect
+        self.mqtt_client.on_message = self.on_mqtt_message
+        try:
+            self.mqtt_client.connect(MQTT_HOST, MQTT_PORT)
+            self.mqtt_client.loop_start()
+            logging.info(f"MQTT client started, connected to {MQTT_HOST}:{MQTT_PORT}")
+        except Exception as e:
+            logging.error(f"Failed to connect to MQTT broker: {e}")
+            # Continue anyway, telemetry might still work via REST
 
         logging.info("Starting Device Manager (searching for devices every 30s)...")
 
@@ -257,6 +333,9 @@ class SmartHomeSimulator:
 
         except asyncio.CancelledError:
             self.running = False
+            if self.mqtt_client:
+                self.mqtt_client.loop_stop()
+                self.mqtt_client.disconnect()
             for task in self.device_tasks.values():
                 task.cancel()
             logging.info("Manager stopped.")
