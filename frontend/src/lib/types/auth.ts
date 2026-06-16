@@ -8,9 +8,12 @@ export interface User {
 }
 
 export interface LoginResponse {
-	access: string;
-	refresh: string;
+	access?: string;
+	refresh?: string;
 	user?: User;
+	mfa_required?: boolean;
+	mfa_token?: string;
+	expires_at?: string;
 }
 
 export interface RegisterPayload {

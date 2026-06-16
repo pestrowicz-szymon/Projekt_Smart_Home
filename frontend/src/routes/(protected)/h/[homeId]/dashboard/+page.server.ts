@@ -5,15 +5,17 @@ import { listRooms } from '$lib/server/endpoints/rooms';
 import { fail } from '@sveltejs/kit';
 import type { Device, Room } from '$lib/types/device';
 
-export const load: PageServerLoad = async ({ params, locals, fetch }) => {
+export const load: PageServerLoad = async ({ params, locals, fetch, depends }) => {
 	const homeId = Number(params.homeId);
 
 	if (isNaN(homeId) || homeId <= 0) {
 		throw new Error('Invalid home ID');
 	}
 
+	depends('app:devices');
+
 	const [devices, rooms] = await Promise.all([
-		listHomeDevices(fetch, locals.token!, homeId),
+		listHomeDevices(fetch, locals.token!, homeId).then((ds) => ds.sort((a, b) => a.id - b.id)),
 		listRooms(fetch, locals.token!)
 	]);
 

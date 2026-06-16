@@ -6,12 +6,14 @@ import { listHomeDevices } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
 import { DEVICE_TYPES, type DeviceType, type Device, type Room } from '$lib/types/device';
 
-export const load: PageServerLoad = async ({ params, fetch, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, locals, depends }) => {
 	if (!locals.token) throw redirect(303, '/login');
 
 	const homeId = Number(params.homeId);
+	depends('app:devices');
+
 	const [devices, rooms] = await Promise.all([
-		listHomeDevices(fetch, locals.token, homeId),
+		listHomeDevices(fetch, locals.token, homeId).then((ds) => ds.sort((a, b) => a.id - b.id)),
 		listRooms(fetch, locals.token)
 	]);
 
@@ -110,7 +112,8 @@ export const actions: Actions = {
 		const roomIdRaw = String(data.get('room_id') ?? '').trim();
 		const roomId = roomIdRaw ? Number(roomIdRaw) : null;
 
-		if (!Number.isInteger(deviceId) || deviceId <= 0) return fail(400, { error: 'Invalid device id' });
+		if (!Number.isInteger(deviceId) || deviceId <= 0)
+			return fail(400, { error: 'Invalid device id' });
 		if (!name) return fail(400, { error: 'Name is required' });
 
 		try {

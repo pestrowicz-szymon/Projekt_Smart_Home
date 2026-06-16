@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { SVGAttributes } from 'svelte/elements';
-	let { ...rest }: SVGAttributes<SVGSVGElement> = $props();
+	let props: SVGAttributes<SVGSVGElement> = $props();
 </script>
 
 <svg
@@ -11,7 +11,7 @@
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	aria-hidden="true"
-	{...rest}
+	{...props}
 >
 	<rect x="4" y="4" width="16" height="16" rx="2" />
 	<rect x="9" y="9" width="6" height="6" />
