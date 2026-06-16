@@ -32,7 +32,9 @@
 	</div>
 
 	{#if rooms && rooms.length > 0}
-		<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
+		<ul
+			class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised"
+		>
 			{#each rooms as room (room.id)}
 				<li class="px-4 py-3">
 					{#if editingId === room.id}
@@ -53,9 +55,9 @@
 								name="description"
 								class="rounded-md border border-line bg-surface px-3 py-2 text-sm"
 								placeholder="Optional description"
-								rows="3"
+								rows="3">
+								{room.description}</textarea
 							>
-{room.description}</textarea>
 
 							{#if form?.error}
 								<p class="text-danger">{form.error}</p>
@@ -116,7 +118,9 @@
 	{:else}
 		<div class="rounded-lg border border-line bg-surface-raised p-6 text-center">
 			<p class="mb-1 text-foreground">No rooms yet.</p>
-			<p class="text-sm text-foreground-muted">Create your first room below to organize your devices.</p>
+			<p class="text-sm text-foreground-muted">
+				Create your first room below to organize your devices.
+			</p>
 		</div>
 	{/if}
 
@@ -140,8 +144,8 @@
 					name="description"
 					class="rounded-md border border-line bg-surface px-3 py-2 text-sm"
 					placeholder="Add a description for this room"
-					rows="3"
-				>{form?.values?.description ?? ''}</textarea>
+					rows="3">{form?.values?.description ?? ''}</textarea
+				>
 			</label>
 
 			{#if form?.error && form?.values}

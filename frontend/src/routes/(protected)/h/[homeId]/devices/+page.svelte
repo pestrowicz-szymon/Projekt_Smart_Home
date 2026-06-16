@@ -2,7 +2,12 @@
 	import { invalidateAll } from '$app/navigation';
 	import FormField from '$lib/components/FormField.svelte';
 	import { CpuIcon } from '$lib/components/icons';
-	import { DEVICE_TYPE_LABEL, DEVICE_TYPES, type DeviceStatus, type Device } from '$lib/types/device';
+	import {
+		DEVICE_TYPE_LABEL,
+		DEVICE_TYPES,
+		type DeviceStatus,
+		type Device
+	} from '$lib/types/device';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -65,7 +70,9 @@
 				<h2 class="mb-3 text-lg font-medium text-foreground">
 					{group.room?.name ?? 'Unassigned'}
 				</h2>
-				<ul class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised">
+				<ul
+					class="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface-raised"
+				>
 					{#each group.devices as device (device.id)}
 						<li class="px-4 py-3">
 							{#if editingId === device.id && editFormData}
@@ -131,7 +138,9 @@
 											Room: {device.room?.name ?? 'Unassigned'}
 										</p>
 									</div>
-									<span class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}">
+									<span
+										class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}"
+									>
 										{device.status}
 									</span>
 									{#if canManage}
@@ -144,7 +153,11 @@
 										</button>
 									{/if}
 									{#if isOwner}
-										<form method="POST" action="?/delete" onsubmit={(e) => confirmDelete(device.name, e)}>
+										<form
+											method="POST"
+											action="?/delete"
+											onsubmit={(e) => confirmDelete(device.name, e)}
+										>
 											<input type="hidden" name="id" value={device.id} />
 											<button
 												type="submit"

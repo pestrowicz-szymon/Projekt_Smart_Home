@@ -110,7 +110,8 @@ export const actions: Actions = {
 		const roomIdRaw = String(data.get('room_id') ?? '').trim();
 		const roomId = roomIdRaw ? Number(roomIdRaw) : null;
 
-		if (!Number.isInteger(deviceId) || deviceId <= 0) return fail(400, { error: 'Invalid device id' });
+		if (!Number.isInteger(deviceId) || deviceId <= 0)
+			return fail(400, { error: 'Invalid device id' });
 		if (!name) return fail(400, { error: 'Name is required' });
 
 		try {

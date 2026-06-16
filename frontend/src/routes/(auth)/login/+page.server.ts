@@ -12,7 +12,21 @@ export const actions = {
 		const password = String(data.get('password') ?? '');
 
 		try {
-			const { access, refresh } = await login(fetch, { username, password });
+			const res = await login(fetch, { username, password });
+
+			if (res.mfa_required) {
+				const params = new URLSearchParams({
+					mfa_token: res.mfa_token ?? '',
+					expires_at: res.expires_at ?? ''
+				});
+				throw redirect(303, `/login/mfa?${params.toString()}`);
+			}
+
+			const { access, refresh } = res;
+			if (!access || !refresh) {
+				return fail(500, { error: 'Authentication failed: missing tokens' });
+			}
+
 			cookies.set('session', access, {
 				httpOnly: true,
 				sameSite: 'lax',

@@ -10,6 +10,11 @@ export function login(fetch: FetchFn, body: { username: string; password: string
 	return apiFetch<LoginResponse>(fetch, '/api/users/login/', { method: 'POST', body });
 }
 
+export function loginMfa(fetch: FetchFn, body: { mfa_token: string; mfa_code: string }) {
+	log.debug({ mfa_token: body.mfa_token }, 'Attempting MFA login');
+	return apiFetch<LoginResponse>(fetch, '/api/users/login/', { method: 'POST', body });
+}
+
 export function register(fetch: FetchFn, body: RegisterPayload) {
 	log.debug({ username: body.username }, 'Attempting registration');
 	return apiFetch<{ message: string }>(fetch, '/api/users/register/', { method: 'POST', body });

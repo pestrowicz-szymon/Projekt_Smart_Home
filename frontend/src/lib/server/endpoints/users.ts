@@ -18,3 +18,34 @@ export function updateHomeMembership(
 		token
 	});
 }
+
+export function getMfaStatus(fetch: FetchFn, token: string) {
+	log.debug('Fetching MFA status');
+	return apiFetch<{ enabled: boolean }>(fetch, '/api/users/mfa/status/', { token });
+}
+
+export function setupMfa(fetch: FetchFn, token: string) {
+	log.debug('Setting up MFA');
+	return apiFetch<{ mfa_enabled: boolean; secret: string; otpauth_uri: string }>(
+		fetch,
+		'/api/users/mfa/setup/',
+		{ method: 'POST', token }
+	);
+}
+
+export function verifyMfaSetup(fetch: FetchFn, token: string, code: string) {
+	log.debug({ code }, 'Verifying MFA setup');
+	return apiFetch<{ enabled: boolean }>(fetch, '/api/users/mfa/verify/', {
+		method: 'POST',
+		body: { code },
+		token
+	});
+}
+
+export function disableMfa(fetch: FetchFn, token: string) {
+	log.debug('Disabling MFA');
+	return apiFetch<{ detail: string }>(fetch, '/api/users/mfa/disable/', {
+		method: 'POST',
+		token
+	});
+}
