@@ -17,7 +17,6 @@ class HomeInviteSerializer(serializers.ModelSerializer):
     created_by = PublicUserSerializer(read_only=True)
     used_by = PublicUserSerializer(read_only=True)
     status = serializers.SerializerMethodField()
-    code = serializers.SerializerMethodField()
 
     class Meta:
         model = HomeInvite
@@ -29,7 +28,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
             "used_by",
             "used_at",
             "revoked_at",
-            "code",
+            "code_hash",
             "status",
             "created_at",
             "updated_at",
@@ -42,7 +41,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
             "used_by",
             "used_at",
             "revoked_at",
-            "code",
+            "code_hash",
             "status",
             "created_at",
             "updated_at",

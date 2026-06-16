@@ -3,6 +3,7 @@
 	import { UserIcon } from '$lib/components/icons';
 	import type { PageProps } from './$types';
 	import type { HomeRole } from '$lib/types/home';
+	import toast from 'svelte-french-toast';
 
 	let { data, form }: PageProps = $props();
 
@@ -15,6 +16,8 @@
 		member: 'bg-muted-soft text-muted',
 		viewer: 'bg-surface-sunken text-foreground-muted'
 	};
+	const roles: HomeRole[] = ['admin', 'member', 'viewer'];
+	let lastToastKey: string | null = $state(null);
 
 	function displayName(u: { first_name: string; last_name: string; username: string }) {
 		const full = `${u.first_name} ${u.last_name}`.trim();
@@ -25,6 +28,22 @@
 		if (form?.success) {
 			invalidateAll();
 		}
+		const action = form?.action;
+		const error = form?.error;
+		const success = form?.success;
+		if (!action || (!error && !success)) return;
+
+		const key = `${action}:${success ? '1' : '0'}:${error ?? ''}`;
+		if (key === lastToastKey) return;
+
+		if (error) {
+			toast.error(String(error));
+		} else if (success) {
+			if (action === 'remove') toast.success('Member removed.');
+			else if (action === 'updateRole') toast.success('Member role updated.');
+			else if (action === 'add') toast.success('Member added.');
+		}
+		lastToastKey = key;
 	});
 </script>
 
@@ -55,61 +74,48 @@
 					</span>
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-foreground">{displayName(member.user)}</p>
+						<span
+							class="mt-1 inline-flex rounded-pill px-2 py-0.5 text-xs {roleStyles[member.role]}"
+						>
+							{member.role}
+						</span>
 						<p class="truncate text-xs text-foreground-subtle">{member.user.email}</p>
 					</div>
-					<span class="rounded-pill px-2 py-0.5 text-xs {roleStyles[member.role]}">
-						{member.role}
-					</span>
+					{#if canManage}
+						<form method="POST" action="?/updateRole" class="flex items-center gap-2">
+							<input type="hidden" name="member_id" value={member.id} />
+							<select name="role" class="text-xs">
+								{#each roles as role}
+									<option value={role} selected={member.role === role}>{role}</option>
+								{/each}
+							</select>
+							<button
+								type="submit"
+								class="rounded-md px-2 py-1 text-xs text-accent hover:bg-accent-soft"
+							>
+								Update
+							</button>
+						</form>
+						<form
+							method="POST"
+							action="?/remove"
+							onsubmit={(e) => {
+								if (!confirm('Remove this member? They will lose access to the home.')) {
+									e.preventDefault();
+								}
+							}}
+						>
+							<input type="hidden" name="member_id" value={member.id} />
+							<button
+								type="submit"
+								class="rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-soft"
+							>
+								Remove
+							</button>
+						</form>
+					{/if}
 				</li>
 			{/each}
 		</ul>
 	</section>
-
-	{#if canManage}
-		<section class="rounded-lg border border-line bg-surface-raised p-4">
-			<h2 class="mb-1 text-md font-medium text-foreground">Add member</h2>
-			<p class="mb-4 text-sm text-foreground-muted">
-				Ask the person to share their User ID from their join screen.
-			</p>
-
-			<form method="POST" class="flex flex-col gap-3">
-				<label class="flex flex-col gap-1">
-					<span class="text-sm">User ID</span>
-					<input name="user_id" type="number" min="1" required placeholder="e.g. 42" />
-				</label>
-
-				<label class="flex flex-col gap-1">
-					<span class="text-sm">Role</span>
-					<select name="role">
-						<option value="member" selected>Member — can view and use</option>
-						<option value="admin">Admin — can manage members and devices</option>
-						<option value="viewer">Viewer — read-only access</option>
-					</select>
-				</label>
-
-				<label class="flex items-center gap-2 text-sm">
-					<input name="can_manage_devices" type="checkbox" />
-					Can manage devices (regardless of role)
-				</label>
-
-				{#if form?.error}
-					<p class="text-danger">{form.error}</p>
-				{/if}
-				{#if form?.success}
-					<p class="text-success">Member added.</p>
-				{/if}
-
-				<button
-					type="submit"
-					class="self-start rounded-md bg-accent px-4 py-2 text-surface hover:bg-accent-hover"
-				>
-					Add member
-				</button>
-			</form>
-		</section>
-	{:else}
-		<p class="rounded-md border border-line bg-surface-raised p-4 text-sm text-foreground-muted">
-			Only owners and admins can add members.
-		</p>
-	{/if}
 </div>

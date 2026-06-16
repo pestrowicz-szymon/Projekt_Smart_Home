@@ -20,6 +20,12 @@ class HomeMembershipSerializer(serializers.ModelSerializer):
         }
 
 
+class HomeMembershipUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeMember
+        fields = ('can_manage_devices',)
+
+
 class UserSerializer(serializers.ModelSerializer):
     home_memberships = serializers.SerializerMethodField()
 

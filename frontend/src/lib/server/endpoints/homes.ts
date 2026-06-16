@@ -55,3 +55,34 @@ export function addMember(
 		token
 	});
 }
+
+export function removeMember(fetch: FetchFn, token: string, homeId: number, memberId: number) {
+	log.debug({ homeId, memberId }, `Removing member ${memberId} from home ${homeId}`);
+	return apiFetch<null>(fetch, `/api/devices/homes/${homeId}/members/${memberId}/`, {
+		method: 'DELETE',
+		token
+	});
+}
+
+export function patchMemberRole(
+	fetch: FetchFn,
+	token: string,
+	homeId: number,
+	memberId: number,
+	role: HomeRole
+) {
+	log.debug({ homeId, memberId, role }, `Updating member ${memberId} role in home ${homeId}`);
+	return apiFetch<HomeMember>(fetch, `/api/devices/homes/${homeId}/members/${memberId}/`, {
+		method: 'PATCH',
+		body: { role },
+		token
+	});
+}
+
+export function deleteMember(fetch: FetchFn, token: string, homeId: number, memberId: number) {
+	log.debug({ homeId, memberId }, `Deleting member ${memberId} from home ${homeId}`);
+	return apiFetch<null>(fetch, `/api/devices/homes/${homeId}/members/${memberId}/`, {
+		method: 'DELETE',
+		token
+	});
+}

@@ -36,7 +36,7 @@ function groupDevicesByRoom(
 
 	// Group devices
 	devices.forEach((device) => {
-		const roomId = device.room_id ?? 0;
+		const roomId = device.room_id ?? device.room?.id ?? 0;
 		if (!grouped[roomId]) grouped[roomId] = [];
 		grouped[roomId].push(device);
 	});

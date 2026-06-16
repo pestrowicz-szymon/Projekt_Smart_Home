@@ -12,7 +12,7 @@ export interface HomeInvite {
 		first_name: string;
 		last_name: string;
 	};
-	code: string | null;
+	code_hash: string | null;
 	expires_at: string;
 	used_by: null | {
 		id: number;

@@ -36,7 +36,7 @@ export const actions: Actions = {
 
 		try {
 			await createRoom(fetch, locals.token, {
-				home: Number(params.homeId),
+				home_id: Number(params.homeId),
 				name,
 				description: description || undefined
 			});

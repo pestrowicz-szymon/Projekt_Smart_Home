@@ -30,7 +30,7 @@
 
 	function startEdit(device: Device) {
 		editingId = device.id;
-		editFormData = { ...device };
+		editFormData = { ...device, room_id: device.room_id ?? device.room?.id ?? null };
 	}
 
 	function cancelEdit() {
@@ -126,6 +126,9 @@
 										<p class="truncate text-foreground">{device.name}</p>
 										<p class="truncate text-xs text-foreground-subtle">
 											{DEVICE_TYPE_LABEL[device.device_type]} · {device.hardware_id}
+										</p>
+										<p class="truncate text-xs text-foreground-muted">
+											Room: {device.room?.name ?? 'Unassigned'}
 										</p>
 									</div>
 									<span class="shrink-0 rounded-pill px-2 py-0.5 text-xs {statusStyles[device.status]}">

@@ -20,7 +20,7 @@ export const actions: Actions = {
 
 		try {
 			const member = await redeemInvite(fetch, locals.token, { code }); // Redirect to the home they were added to
-			throw redirect(303, `/h/${member.home}`);
+			throw redirect(303, `/h/${member.home}/dashboard`);
 		} catch (err) {
 			if (err instanceof ApiError) {
 				const body = err.body;

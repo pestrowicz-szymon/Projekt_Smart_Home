@@ -169,7 +169,7 @@ class HomeViewSet(viewsets.ModelViewSet):
 		examples=[HOME_MEMBER_RESPONSE_EXAMPLE, HOME_MEMBER_CREATE_EXAMPLE],
 		responses={200: HomeMemberSerializer, 204: None},
 	)
-	@action(detail=True, methods=['get', 'put', 'delete'], url_path=r'members/(?P<member_id>[^/.]+)')
+	@action(detail=True, methods=['get', 'put', 'patch', 'delete'], url_path=r'members/(?P<member_id>[^/.]+)')
 	def member(self, request, pk=None, member_id=None):
 		home = self.get_object()
 		member = home.memberships.select_related('user').filter(pk=member_id).first()
