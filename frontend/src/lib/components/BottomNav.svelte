@@ -16,8 +16,7 @@
 	const onDevices = $derived(pathname.includes('/devices'));
 	const onAutomations = $derived(pathname.includes('/automations'));
 
-	const tabBase =
-		'flex flex-col items-center gap-1 py-2.5 text-xs transition-colors';
+	const tabBase = 'flex flex-col items-center gap-1 py-2.5 text-xs transition-colors';
 	const tabActive = 'text-accent';
 	const tabIdle = 'text-foreground-muted hover:text-foreground';
 </script>

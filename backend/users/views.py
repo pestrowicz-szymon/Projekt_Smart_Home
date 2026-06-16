@@ -195,3 +195,19 @@ def mfa_disable(request):
 def logout(request):
     """Logout endpoint (simply delete token on frontend)"""
     return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_home_membership(request, membership_id: int):
+    """Update a home membership, e.g. enable device management."""
+    membership = get_object_or_404(HomeMember.objects.select_related('home'), pk=membership_id)
+    if not user_can_manage_home_members(request.user, membership):
+        return Response(
+            {'detail': 'Only home owners or admins can update membership permissions.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    serializer = HomeMembershipUpdateSerializer(membership, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(HomeMembershipSerializer(membership).data)

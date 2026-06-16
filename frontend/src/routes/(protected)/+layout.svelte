@@ -9,7 +9,7 @@
 </script>
 
 <div class="flex min-h-dvh flex-col">
-	<main class="flex-1">
+	<main class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-6 pb-24 md:pb-6">
 		{@render children()}
 	</main>
 	<BottomNav onMoreClick={() => (moreOpen = true)} />

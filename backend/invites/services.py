@@ -19,14 +19,16 @@ class InviteError(serializers.ValidationError):
 
 
 def hash_invite_code(code: str) -> str:
-    return hashlib.sha256(code.encode('utf-8')).hexdigest()
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 
 def generate_invite_code() -> str:
     return secrets.token_hex(INVITE_CODE_BYTES)
 
 
-def create_home_invite(*, home: Home, created_by, expires_in_minutes: int = INVITE_TTL_MINUTES) -> tuple[HomeInvite, str]:
+def create_home_invite(
+    *, home: Home, created_by, expires_in_minutes: int = INVITE_TTL_MINUTES
+) -> tuple[HomeInvite, str]:
     raw_code = generate_invite_code()
     invite = HomeInvite.objects.create(
         home=home,
@@ -38,29 +40,28 @@ def create_home_invite(*, home: Home, created_by, expires_in_minutes: int = INVI
 
 
 @transaction.atomic
-def redeem_home_invite(*, code: str, user) -> HomeMember:
-    code_hash = hash_invite_code(code)
+def redeem_home_invite(*, code_hash: str, user) -> HomeMember:
     invite = (
         HomeInvite.objects.select_for_update()
-        .select_related('home')
+        .select_related("home")
         .filter(code_hash=code_hash)
         .first()
     )
     if invite is None:
-        raise InviteError({'code': 'Invalid invitation code.'})
+        raise InviteError({"code": "Invalid invitation code."})
 
     now = timezone.now()
     if invite.revoked_at is not None:
-        raise InviteError({'code': 'This invitation code has been revoked.'})
+        raise InviteError({"code": "This invitation code has been revoked."})
     if invite.used_at is not None:
-        raise InviteError({'code': 'This invitation code has already been used.'})
+        raise InviteError({"code": "This invitation code has already been used."})
     if invite.expires_at <= now:
-        raise InviteError({'code': 'This invitation code has expired.'})
+        raise InviteError({"code": "This invitation code has expired."})
     if HomeMember.objects.filter(home=invite.home, user=user).exists():
-        raise InviteError({'code': 'You are already a member of this home.'})
+        raise InviteError({"code": "You are already a member of this home."})
 
     membership = HomeMember.objects.create(home=invite.home, user=user)
     invite.used_by = user
     invite.used_at = now
-    invite.save(update_fields=['used_by', 'used_at', 'updated_at'])
+    invite.save(update_fields=["used_by", "used_at", "updated_at"])
     return membership

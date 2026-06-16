@@ -1,32 +1,20 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
+	import { copy } from '$lib/utils/copy';
+	import FormField from '$lib/components/FormField.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
-
-	let copiedField = $state<string | null>(null);
-
-	async function copy(value: string, field: string) {
-		try {
-			await navigator.clipboard.writeText(value);
-			copiedField = field;
-			setTimeout(() => {
-				if (copiedField === field) copiedField = null;
-			}, 1500);
-		} catch {
-			copiedField = null;
-		}
-	}
+	let { data, form }: PageProps = $props();
 </script>
 
 <svelte:head>
 	<title>Join a home</title>
 </svelte:head>
 
-<div class="mx-auto max-w-md px-4 py-10">
+<div class="flex flex-col">
 	<a
-		href={resolve('/onboarding')}
+		href={resolve('/h')}
 		class="mb-4 inline-block text-sm text-foreground-muted hover:text-foreground"
 	>
 		&larr; Back
@@ -43,34 +31,47 @@
 		<ul class="flex flex-col gap-3">
 			<li class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
-					<p class="text-xs text-foreground-subtle">Email</p>
-					<p class="truncate text-foreground">{data.user.email}</p>
+					<p class="text-s text-foreground-subtle">UUID</p>
+					<p class="truncate text-foreground">{data.user.id}</p>
 				</div>
 				<button
 					type="button"
-					onclick={() => copy(data.user.email, 'email')}
+					onclick={() => copy(data.user.id)}
 					class="shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:border-line-accent"
 				>
-					{copiedField === 'email' ? 'Copied' : 'Copy'}
+					Copy
 				</button>
 			</li>
 		</ul>
 	</section>
 
-	<section class="mb-6 rounded-lg border border-line bg-surface-raised p-4 opacity-60">
-		<div class="mb-2 flex items-center justify-between">
-			<h2 class="text-md font-medium text-foreground">Have an invite code?</h2>
-			<span class="rounded-pill bg-secondary-soft px-2 py-0.5 text-xs text-secondary">
-				Coming soon
-			</span>
-		</div>
-		<input
-			type="text"
-			placeholder="ABCD-1234"
-			disabled
-			class="w-full cursor-not-allowed"
-			aria-label="Invite code"
-		/>
+	<section class="mb-6 rounded-lg border border-line bg-surface-raised p-4">
+		<h2 class="mb-3 text-md font-medium text-foreground">Have an invite code?</h2>
+		<p class="mb-3 text-sm text-foreground-muted">
+			The home owner can generate an invite code to add you instantly.
+		</p>
+		<form method="POST" action="?/redeem" class="flex flex-col gap-3">
+			<FormField
+				name="code"
+				type="text"
+				required
+				label="Invite code"
+				placeholder="Paste the code here"
+				value={form?.values?.code ?? ''}
+				autocomplete="off"
+			/>
+
+			{#if form?.error}
+				<p class="text-danger">{form.error}</p>
+			{/if}
+
+			<button
+				type="submit"
+				class="rounded-md bg-accent px-4 py-2 text-surface hover:bg-accent-hover"
+			>
+				Join with code
+			</button>
+		</form>
 	</section>
 
 	<button
