@@ -11,6 +11,10 @@ export type DeviceEvent =
 			status: string;
 	  }
 	| {
+			type: 'device_created';
+			device: Device;
+	  }
+	| {
 			type: 'action_acked';
 			device_id: number;
 			action_id: number;
@@ -95,6 +99,8 @@ class DeviceStore {
 				last_seen_at: event.last_seen_at,
 				status: event.status as Device['status']
 			});
+		} else if (event.type === 'device_created') {
+			this.addOrUpdateDevice(event.device);
 		} else if (event.type === 'action_acked' || event.type === 'action_failed') {
 			console.log(`Action ${event.type}:`, event.correlation_id);
 		}
@@ -107,6 +113,15 @@ class DeviceStore {
 				...this.devices[index],
 				...updates
 			};
+		}
+	}
+
+	addOrUpdateDevice(device: Device) {
+		const index = this.devices.findIndex((d) => d.id === device.id);
+		if (index === -1) {
+			this.devices = [...this.devices, device];
+		} else {
+			this.devices[index] = device;
 		}
 	}
 }

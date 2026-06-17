@@ -40,7 +40,8 @@ def create_home_invite(
 
 
 @transaction.atomic
-def redeem_home_invite(*, code_hash: str, user) -> HomeMember:
+def redeem_home_invite(*, raw_code: str, user) -> HomeMember:
+    code_hash = raw_code
     invite = (
         HomeInvite.objects.select_for_update()
         .select_related("home")

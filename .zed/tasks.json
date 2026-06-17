@@ -4,7 +4,7 @@
 [
     {
         "label": "Run docker compose",
-        "command": "cd $ZED_WORKTREE_ROOT && sudo docker compose up"
+        "command": "cd $ZED_WORKTREE_ROOT && sudo docker compose up --build"
     },
     {
         "label": "Run backend",
@@ -12,7 +12,7 @@
     },
     {
         "label": "Run sims",
-        "command": "cd $ZED_WORKTREE_ROOT/simulations && uv run simulator.py"
+        "command": "cd $ZED_WORKTREE_ROOT/simulations && uv run src/simulator.py"
     },
     {
         "label": "Sync svelte-kit types",

@@ -203,6 +203,10 @@ SPECTACULAR_SETTINGS = {
             }
         }
     },
+    "ENUM_NAME_OVERRIDES": {
+        "DeviceStatus": "devices.models.Device.Status",
+        "DeviceActionStatus": "devices.models.DeviceAction.Status",
+    },
 }
 
 # CORS settings for frontend

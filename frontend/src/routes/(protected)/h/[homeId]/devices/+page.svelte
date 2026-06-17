@@ -6,17 +6,47 @@
 		DEVICE_TYPE_LABEL,
 		DEVICE_TYPES,
 		type DeviceStatus,
-		type Device
+		type Device,
+		type Room
 	} from '$lib/types/device';
+	import { deviceStore } from '$lib/stores/devices.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const home = $derived(data.home);
-	const devicesByRoom = $derived(data.devicesByRoom);
 	const rooms = $derived(data.rooms);
 	const canManage = $derived(data.canManageDevices);
 	const isOwner = $derived(data.isOwner);
+
+	const devicesByRoom = $derived.by(() => {
+		const devices = deviceStore.devices;
+		const grouped: { [key: number]: Device[] } = { 0: [] };
+
+		// Group devices
+		devices.forEach((device) => {
+			const roomId = device.room_id ?? device.room?.id ?? 0;
+			if (!grouped[roomId]) grouped[roomId] = [];
+			grouped[roomId].push(device);
+		});
+
+		// Build result with rooms
+		const result: { room: Room | null; devices: Device[] }[] = [];
+
+		// Add rooms with devices first
+		rooms.forEach((room) => {
+			if (grouped[room.id]) {
+				result.push({ room, devices: grouped[room.id] });
+			}
+		});
+
+		// Add unassigned devices last
+		if (grouped[0].length > 0) {
+			result.push({ room: null, devices: grouped[0] });
+		}
+
+		return result;
+	});
 
 	let editingId: number | null = $state(null);
 	let editFormData: Partial<Device> | null = $state(null);
@@ -61,7 +91,9 @@
 		<div class="mb-6 rounded-lg border border-line bg-surface-raised p-6 text-center">
 			<p class="mb-1 text-foreground">No devices yet.</p>
 			<p class="text-sm text-foreground-muted">
-				{canManage ? 'Add your first device below.' : 'Ask the home owner to add devices.'}
+				{canManage
+					? 'Connect a gateway to discover devices.'
+					: 'Ask the home owner to connect a gateway.'}
 			</p>
 		</div>
 	{:else}
@@ -175,83 +207,5 @@
 				</ul>
 			</div>
 		{/each}
-	{/if}
-
-	{#if canManage}
-		<section class="rounded-lg border border-line bg-surface-raised p-4">
-			<h2 class="mb-1 text-md font-medium text-foreground">Add device</h2>
-			<p class="mb-4 text-sm text-foreground-muted">
-				Register a new device by giving it a name and the hardware ID printed on it.
-			</p>
-
-			<form method="POST" action="?/create" class="flex flex-col">
-				<FormField
-					name="name"
-					type="text"
-					required
-					label="Name"
-					placeholder="e.g. Living room light"
-					value={form?.values?.name ?? ''}
-				/>
-
-				<label class="mb-3 flex flex-col gap-1">
-					<span class="text-sm">Device type</span>
-					<select name="device_type" required>
-						<option value="" disabled selected={!form?.values?.device_type}>Pick one…</option>
-						{#each DEVICE_TYPES as type (type)}
-							<option value={type} selected={form?.values?.device_type === type}>
-								{DEVICE_TYPE_LABEL[type]}
-							</option>
-						{/each}
-					</select>
-				</label>
-
-				<FormField
-					name="hardware_id"
-					type="text"
-					required
-					label="Hardware ID"
-					placeholder="e.g. esp32-aa-bb"
-					value={form?.values?.hardware_id ?? ''}
-				/>
-
-				{#if rooms && rooms.length > 0}
-					<label class="mb-3 flex flex-col gap-1">
-						<span class="text-sm">Room (optional)</span>
-						<select name="room_id">
-							<option value="">No room</option>
-							{#each rooms as room (room.id)}
-								<option value={room.id} selected={form?.values?.room_id === room.id}>
-									{room.name}
-								</option>
-							{/each}
-						</select>
-					</label>
-				{/if}
-
-				<label class="mb-4 flex items-center gap-2 text-sm">
-					<input name="is_active" type="checkbox" checked />
-					Active
-				</label>
-
-				{#if form?.error}
-					<p class="mb-3 text-danger">{form.error}</p>
-				{/if}
-				{#if form?.success}
-					<p class="mb-3 text-success">Device added.</p>
-				{/if}
-
-				<button
-					type="submit"
-					class="self-start rounded-md bg-accent px-4 py-2 text-surface hover:bg-accent-hover"
-				>
-					Add device
-				</button>
-			</form>
-		</section>
-	{:else}
-		<p class="rounded-md border border-line bg-surface-raised p-4 text-sm text-foreground-muted">
-			Only the owner and members with device-management permission can add devices.
-		</p>
 	{/if}
 </div>

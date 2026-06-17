@@ -3,17 +3,31 @@ from datetime import timedelta
 
 import pyotp
 from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from rest_framework import status
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from devices.models import HomeMember
 
 from .models import UserMFALoginChallenge, UserMFASettings
 from .serializers import (
+    CustomTokenRefreshSerializer,
+    HomeMembershipSerializer,
+    HomeMembershipUpdateSerializer,
+    LoginRequestSerializer,
+    LoginResponseSerializer,
     MFALoginVerifySerializer,
+    MFARequiredResponseSerializer,
+    MFASetupResponseSerializer,
     MFASetupVerifySerializer,
+    MFAStatusResponseSerializer,
     RegisterSerializer,
     UserSerializer,
 )
@@ -21,9 +35,20 @@ from .serializers import (
 MFA_CHALLENGE_LIFETIME = timedelta(minutes=5)
 
 
+def user_can_manage_home_members(user, membership):
+    home = membership.home
+    if user.is_superuser or home.owner_id == user.id:
+        return True
+
+    # Check if the user is an admin in this home
+    user_membership = home.memberships.filter(user=user).first()
+    return user_membership and user_membership.role == HomeMember.Role.ADMIN
+
+
 def _issue_tokens(user, mfa_verified=False):
     refresh = RefreshToken.for_user(user)
-    # Add custom claim to the access token
+    # Add custom claim to both tokens to support persistence across refreshes
+    refresh["mfa_verified"] = mfa_verified
     refresh.access_token["mfa_verified"] = mfa_verified
 
     return {
@@ -45,6 +70,15 @@ def _verify_totp(secret: str, code: str) -> bool:
     return bool(totp.verify(code, valid_window=1))
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Register a new user",
+    request=RegisterSerializer,
+    responses={
+        201: inline_serializer("RegisterSuccess", {"message": serializers.CharField()}),
+        400: OpenApiTypes.OBJECT,
+    },
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
@@ -58,6 +92,11 @@ def register(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Get current user info",
+    responses={200: UserSerializer},
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user(request):
@@ -66,6 +105,17 @@ def get_user(request):
     return Response(serializer.data)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Login",
+    description="Authenticates a user and returns JWT tokens. Supports MFA if enabled.",
+    request=LoginRequestSerializer,
+    responses={
+        200: LoginResponseSerializer,
+        202: MFARequiredResponseSerializer,
+        401: OpenApiTypes.OBJECT,
+    },
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request):
@@ -133,6 +183,11 @@ def login(request):
     return Response(_issue_tokens(user, mfa_verified=True), status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["mfa"],
+    summary="Get MFA status",
+    responses={200: MFAStatusResponseSerializer},
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def mfa_status(request):
@@ -140,10 +195,22 @@ def mfa_status(request):
     return Response({"enabled": settings.enabled}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["mfa"],
+    summary="Setup MFA",
+    request=None,
+    responses={200: MFASetupResponseSerializer},
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mfa_setup(request):
     settings = _get_or_create_mfa_settings(request.user)
+    if settings.enabled:
+        return Response(
+            {"detail": "MFA is already enabled for this account."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     if not settings.secret:
         settings.secret = pyotp.random_base32()
         settings.enabled = False
@@ -162,6 +229,12 @@ def mfa_setup(request):
     )
 
 
+@extend_schema(
+    tags=["mfa"],
+    summary="Verify MFA setup",
+    request=MFASetupVerifySerializer,
+    responses={200: MFAStatusResponseSerializer, 400: OpenApiTypes.OBJECT},
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mfa_verify_setup(request):
@@ -185,6 +258,14 @@ def mfa_verify_setup(request):
     return Response({"enabled": True}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["mfa"],
+    summary="Disable MFA",
+    request=None,
+    responses={
+        200: inline_serializer("MFADisableSuccess", {"detail": serializers.CharField()})
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mfa_disable(request):
@@ -196,6 +277,15 @@ def mfa_disable(request):
     return Response({"detail": "MFA disabled."}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Logout",
+    request=inline_serializer("LogoutRequest", {"refresh": serializers.CharField()}),
+    responses={
+        200: inline_serializer("LogoutSuccess", {"message": serializers.CharField()}),
+        400: OpenApiTypes.OBJECT,
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request):
@@ -214,6 +304,14 @@ def logout(request):
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    tags=["auth"],
+    summary="Update home membership",
+    request=inline_serializer(
+        "HomeMembershipUpdate", {"can_manage_devices": serializers.BooleanField()}
+    ),
+    responses={200: HomeMembershipSerializer},
+)
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def update_home_membership(request, membership_id: int):
@@ -232,3 +330,7 @@ def update_home_membership(request, membership_id: int):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(HomeMembershipSerializer(membership).data)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer

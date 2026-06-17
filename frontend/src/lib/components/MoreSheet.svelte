@@ -6,13 +6,15 @@
 	import {
 		HomeIcon,
 		ChevronDownIcon,
+		ChevronRightIcon,
 		DoorIcon,
 		ClockIcon,
 		UsersIcon,
 		SettingsIcon,
 		UserIcon,
 		SlidersIcon,
-		LogoutIcon
+		LogoutIcon,
+		GateIcon
 	} from '$lib/components/icons';
 
 	interface Props {
@@ -29,106 +31,133 @@
 	function close() {
 		open = false;
 	}
+
+	const listContainerClass =
+		'mx-3 my-2 divide-y divide-line overflow-hidden rounded-xl bg-surface-raised border border-line';
+	const itemLinkClass =
+		'flex items-center justify-between px-4 py-3 transition-colors hover:bg-surface-sunken';
+	const itemContentClass = 'flex items-center gap-3';
+	const sectionTitleClass =
+		'mx-5 mt-4 mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground-subtle';
 </script>
 
 <Drawer.Root bind:open closeThreshold={0.25}>
 	<Drawer.Portal>
 		<Drawer.Overlay class="fixed inset-0 z-50 bg-overlay" />
 		<Drawer.Content
-			class="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none"
+			class="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-xl border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none"
 		>
-			<Drawer.Handle class="mx-auto my-2 h-1.5 w-10 shrink-0 rounded-pill bg-line-strong" />
-
 			<Drawer.Title class="sr-only">More options</Drawer.Title>
 			<Drawer.Description class="sr-only">
-				Switch homes, navigate to home settings, or sign out.
+				Switch homes, navigate to settings, or sign out.
 			</Drawer.Description>
 
-			<div class="overflow-y-auto">
+			<div class="overflow-y-auto pb-6">
+				<!-- Home Switcher -->
 				<a
 					href={resolve('/h')}
 					onclick={close}
-					class="mx-3 my-2 flex items-center justify-between rounded-md bg-surface-raised px-4 py-3 transition-colors hover:bg-surface-sunken"
+					class="mx-3 my-4 flex items-center justify-between rounded-xl bg-accent-soft border border-line-accent px-4 py-4 transition-colors hover:bg-surface-raised"
 				>
 					<span class="flex items-center gap-3">
-						<HomeIcon class="h-5 w-5 text-accent" />
-						<span class="font-medium text-foreground">{activeHomeName ?? 'Select home'}</span>
+						<HomeIcon class="h-6 w-6 text-accent" />
+						<span class="font-bold text-foreground">{activeHomeName ?? 'Select home'}</span>
 					</span>
-					<ChevronDownIcon class="h-4 w-4 text-foreground-muted" />
+					<ChevronDownIcon class="h-5 w-5 text-accent" />
 				</a>
 
-				<ul class="mx-3 my-2 divide-y divide-line overflow-hidden rounded-md bg-surface-raised">
+				<!-- Current Home Section -->
+				{#if homeId}
+					<h3 class={sectionTitleClass}>Current Home</h3>
+					<ul class={listContainerClass}>
+						<li>
+							<a href={resolve(`/h/${homeId}/rooms`)} onclick={close} class={itemLinkClass}>
+								<span class={itemContentClass}>
+									<DoorIcon class="h-5 w-5 text-foreground-muted" />
+									<span class="text-foreground">Rooms</span>
+								</span>
+								<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
+							</a>
+						</li>
+						<li>
+							<a href={resolve(`/h/${homeId}/activity`)} onclick={close} class={itemLinkClass}>
+								<span class={itemContentClass}>
+									<ClockIcon class="h-5 w-5 text-foreground-muted" />
+									<span class="text-foreground">Activity</span>
+								</span>
+								<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
+							</a>
+						</li>
+						<li>
+							<a
+								href={resolve(`/h/${homeId}/settings/members`)}
+								onclick={close}
+								class={itemLinkClass}
+							>
+								<span class={itemContentClass}>
+									<UsersIcon class="h-5 w-5 text-foreground-muted" />
+									<span class="text-foreground">Members</span>
+								</span>
+								<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
+							</a>
+						</li>
+						<li>
+							<a href={resolve(`/h/${homeId}/settings`)} onclick={close} class={itemLinkClass}>
+								<span class={itemContentClass}>
+									<SettingsIcon class="h-5 w-5 text-foreground-muted" />
+									<span class="text-foreground">Home Settings</span>
+								</span>
+								<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
+							</a>
+						</li>
+					</ul>
+				{/if}
+
+				<!-- General Section -->
+				<h3 class={sectionTitleClass}>General</h3>
+				<ul class={listContainerClass}>
 					<li>
-						<a
-							href={homeId ? resolve(`/h/${homeId}/rooms`) : resolve('/h')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<DoorIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">Rooms</span>
+						<a href={resolve('/settings/gateways')} onclick={close} class={itemLinkClass}>
+							<span class={itemContentClass}>
+								<GateIcon class="h-5 w-5 text-foreground-muted" />
+								<span class="text-foreground">Gateways</span>
+							</span>
+							<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
 						</a>
 					</li>
 					<li>
-						<a
-							href={homeId ? resolve(`/h/${homeId}/activity`) : resolve('/h')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<ClockIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">Activity</span>
-						</a>
-					</li>
-					<li>
-						<a
-							href={homeId ? resolve(`/h/${homeId}/settings/members`) : resolve('/h')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<UsersIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">Members</span>
-						</a>
-					</li>
-					<li>
-						<a
-							href={homeId ? resolve(`/h/${homeId}/settings`) : resolve('/h')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<SettingsIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">Home settings</span>
+						<a href={resolve('/settings/preferences')} onclick={close} class={itemLinkClass}>
+							<span class={itemContentClass}>
+								<SlidersIcon class="h-5 w-5 text-foreground-muted" />
+								<span class="text-foreground">Preferences</span>
+							</span>
+							<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
 						</a>
 					</li>
 				</ul>
 
-				<ul class="mx-3 my-2 divide-y divide-line overflow-hidden rounded-md bg-surface-raised">
+				<!-- Account Section -->
+				<h3 class={sectionTitleClass}>Account</h3>
+				<ul class={listContainerClass}>
 					<li>
-						<a
-							href={resolve('/settings/account')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<UserIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">{displayName}</span>
-						</a>
-					</li>
-					<li>
-						<a
-							href={resolve('/settings/preferences')}
-							onclick={close}
-							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
-						>
-							<SlidersIcon class="h-5 w-5 text-foreground-muted" />
-							<span class="text-foreground">Preferences</span>
+						<a href={resolve('/settings/account')} onclick={close} class={itemLinkClass}>
+							<span class={itemContentClass}>
+								<UserIcon class="h-5 w-5 text-foreground-muted" />
+								<span class="text-foreground">{displayName}</span>
+							</span>
+							<ChevronRightIcon class="h-4 w-4 text-foreground-subtle" />
 						</a>
 					</li>
 					<li>
 						<form method="POST" action={resolve('/logout')} class="contents">
 							<button
 								type="submit"
-								class="flex w-full items-center gap-3 px-4 py-3 text-left text-danger transition-colors hover:bg-surface-sunken"
+								class="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-danger-soft group"
 							>
-								<LogoutIcon class="h-5 w-5" />
-								<span>Sign out</span>
+								<span class={itemContentClass}>
+									<LogoutIcon class="h-5 w-5 text-danger group-hover:text-danger" />
+									<span class="text-danger">Sign out</span>
+								</span>
 							</button>
 						</form>
 					</li>

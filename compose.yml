@@ -5,9 +5,6 @@ services:
             - POSTGRES_DB=smarthome_db
             - POSTGRES_USER=postgres
             - POSTGRES_PASSWORD=admin
-            - POSTGRES_HOST=localhost
-            - POSTGRES_PORT=5432
-
         ports:
             - "5432:5432"
         volumes:
@@ -18,16 +15,60 @@ services:
         ports:
             - "8883:8883"
         volumes:
-            - ./mosquitto/config:/mosquitto/config
+            - ./mosquitto/config:/mosquitto/config:ro
             - ./mosquitto/data:/mosquitto/data
             - ./mosquitto/log:/mosquitto/log
+            - ./certs:/mosquitto/config/certs
+
+    api:
+        build:
+            context: ./backend
+            dockerfile: Containerfile
+        env_file:
+            - .env.prod
+        volumes:
+            - ./certs:/app/certs:ro
+        ports:
+            - "8000:8000"
+        depends_on:
+            - db
+            - mosquitto
+        restart: always
+
+    mqtt-bridge:
+        build:
+            context: ./backend
+            dockerfile: Containerfile
+        command: uv run python -u manage.py run_mqtt_bridge
+        env_file:
+            - .env.prod
+        volumes:
+            - ./certs:/app/certs:ro
+        depends_on:
+            - db
+            - mosquitto
+        restart: always
+
+    heartbeat-monitor:
+        build:
+            context: ./backend
+            dockerfile: Containerfile
+        command: uv run python -u manage.py run_heartbeat_monitor --interval 10 --threshold 20
+        env_file:
+            - .env.prod
+        volumes:
+            - ./certs:/app/certs:ro
+        depends_on:
+            - db
+            - mosquitto
+        restart: always
 
     # frontend:
     #   build:
     #     context: ./frontend
     #     dockerfile: ./frontend/Containerfile
     #   ports:
-    #     - "5173:5173"
+    #     - "433:5173"
 
 volumes:
     smart_home_postgres_volume:

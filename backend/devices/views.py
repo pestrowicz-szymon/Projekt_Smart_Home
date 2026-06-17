@@ -14,7 +14,7 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import BaseRenderer
@@ -23,10 +23,11 @@ from rest_framework.views import APIView
 
 from users.permissions import IsMFAVerified
 
-from .models import Device, DeviceAction, Home, Room, SensorData
+from .models import Device, DeviceAction, Gateway, Home, Room, SensorData
 from .mqtt_bridge import publish_device_action
 from .permissions import (
     CanAccessDevice,
+    CanAccessGateway,
     CanAccessHome,
     CanAccessRoom,
     CanDeleteDevice,
@@ -36,6 +37,7 @@ from .serializers import (
     DeviceActionSerializer,
     DeviceCommandCreateSerializer,
     DeviceSerializer,
+    GatewaySerializer,
     HomeMemberSerializer,
     HomeSerializer,
     RoomSerializer,
@@ -259,6 +261,100 @@ HOME_DEVICES_FILTER_EXAMPLE = OpenApiExample(
 
 
 @extend_schema_view(
+    list=extend_schema(
+        tags=["gateways"],
+        summary="List gateways",
+        responses=GatewaySerializer(many=True),
+    ),
+    retrieve=extend_schema(
+        tags=["gateways"], summary="Get gateway details", responses=GatewaySerializer
+    ),
+    update=extend_schema(
+        tags=["gateways"],
+        summary="Update gateway",
+        request=GatewaySerializer,
+        responses=GatewaySerializer,
+    ),
+    partial_update=extend_schema(
+        tags=["gateways"],
+        summary="Patch gateway",
+        request=GatewaySerializer,
+        responses=GatewaySerializer,
+    ),
+    destroy=extend_schema(
+        tags=["gateways"], summary="Delete gateway", responses={204: None}
+    ),
+)
+class GatewayViewSet(viewsets.ModelViewSet):
+    queryset = Gateway.objects.none()
+    serializer_class = GatewaySerializer
+    permission_classes = [IsAuthenticated, IsMFAVerified, CanAccessGateway]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Gateway.objects.select_related("home")
+        if user.is_superuser:
+            return queryset
+        return queryset.filter(
+            Q(home__owner=user) | Q(home__memberships__user=user) | Q(home__isnull=True)
+        ).distinct()
+
+    @extend_schema(
+        tags=["gateways"],
+        summary="Claim an unassigned gateway",
+        request=serializers.Serializer,  # We just need home_id, hardware_id and pairing_code in payload
+        responses={200: GatewaySerializer},
+    )
+    @action(detail=False, methods=["post"], url_path="claim")
+    def claim(self, request):
+        hardware_id = request.data.get("hardware_id")
+        home_id = request.data.get("home_id")
+        pairing_code = request.data.get("pairing_code")
+
+        if not hardware_id or not home_id or not pairing_code:
+            return Response(
+                {"detail": "hardware_id, home_id and pairing_code are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        gateway = Gateway.objects.filter(
+            hardware_id=hardware_id, home__isnull=True
+        ).first()
+        if not gateway:
+            return Response(
+                {"detail": "Gateway not found or already claimed."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if gateway.pairing_code != pairing_code:
+            return Response(
+                {"detail": "Invalid pairing code."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        home = Home.objects.filter(pk=home_id).first()
+        if not home:
+            return Response(
+                {"detail": "Home not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not user_has_home_access(request.user, home, write=True):
+            return Response(
+                {"detail": "You do not have permission to add a gateway to this home."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        gateway.home = home
+        gateway.pairing_code = None
+        gateway.save()
+
+        # Update all devices linked to this gateway to belong to this home
+        gateway.devices.update(home=home)
+
+        return Response(GatewaySerializer(gateway).data)
+
+
+@extend_schema_view(
     list=extend_schema(tags=["homes"], summary="List homes", responses=HomeSerializer),
     retrieve=extend_schema(
         tags=["homes"], summary="Get home details", responses=HomeSerializer
@@ -284,6 +380,7 @@ HOME_DEVICES_FILTER_EXAMPLE = OpenApiExample(
     destroy=extend_schema(tags=["homes"], summary="Delete home", responses={204: None}),
 )
 class HomeViewSet(viewsets.ModelViewSet):
+    queryset = Home.objects.none()
     serializer_class = HomeSerializer
     permission_classes = [IsAuthenticated, IsMFAVerified, CanAccessHome]
 
@@ -331,6 +428,14 @@ class HomeViewSet(viewsets.ModelViewSet):
         tags=["homes"],
         summary="Get, update or delete a home member",
         request=HomeMemberSerializer,
+        parameters=[
+            OpenApiParameter(
+                "member_id",
+                type=int,
+                location=OpenApiParameter.PATH,
+                description="The ID of the home member record.",
+            )
+        ],
         examples=[HOME_MEMBER_RESPONSE_EXAMPLE, HOME_MEMBER_CREATE_EXAMPLE],
         responses={200: HomeMemberSerializer, 204: None},
     )
@@ -423,6 +528,7 @@ class HomeViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(tags=["rooms"], summary="Delete room", responses={204: None}),
 )
 class RoomViewSet(viewsets.ModelViewSet):
+    queryset = Room.objects.none()
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated, CanAccessRoom]
 
@@ -484,6 +590,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     ),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
+    queryset = Device.objects.none()
     serializer_class = DeviceSerializer
     permission_classes = [IsAuthenticated, IsMFAVerified, CanAccessDevice]
 
@@ -611,6 +718,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 class DeviceActionViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
+    queryset = DeviceAction.objects.none()
     serializer_class = DeviceActionSerializer
     permission_classes = [IsAuthenticated, CanAccessDevice]
 
@@ -639,6 +747,7 @@ class DeviceActionViewSet(
 class SensorDataViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
+    queryset = SensorData.objects.none()
     serializer_class = SensorDataSerializer
     permission_classes = [IsAuthenticated, CanAccessDevice]
 

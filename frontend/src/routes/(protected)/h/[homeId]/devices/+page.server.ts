@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { createDevice, deleteDevice, updateDevice } from '$lib/server/endpoints/devices';
+import { deleteDevice, updateDevice } from '$lib/server/endpoints/devices';
 import { listRooms } from '$lib/server/endpoints/rooms';
 import { listHomeDevices } from '$lib/server/endpoints/homes';
 import { ApiError } from '$lib/server/endpoints/client';
-import { DEVICE_TYPES, type DeviceType, type Device, type Room } from '$lib/types/device';
+import type { Device, Room } from '$lib/types/device';
 
 export const load: PageServerLoad = async ({ params, fetch, locals, depends }) => {
 	if (!locals.token) throw redirect(303, '/login');
@@ -56,53 +56,6 @@ function groupDevicesByRoom(
 }
 
 export const actions: Actions = {
-	create: async ({ request, params, fetch, locals }) => {
-		if (!locals.token) throw redirect(303, '/login');
-
-		const data = await request.formData();
-		const name = String(data.get('name') ?? '').trim();
-		const deviceTypeRaw = String(data.get('device_type') ?? '');
-		const hardwareId = String(data.get('hardware_id') ?? '').trim();
-		const isActive = data.get('is_active') === 'on';
-		const roomIdRaw = String(data.get('room_id') ?? '').trim();
-		const roomId = roomIdRaw ? Number(roomIdRaw) : undefined;
-
-		const values = { name, device_type: deviceTypeRaw, hardware_id: hardwareId, room_id: roomId };
-
-		if (!name) return fail(400, { error: 'Name is required', values });
-		if (!DEVICE_TYPES.includes(deviceTypeRaw as DeviceType)) {
-			return fail(400, { error: 'Pick a device type', values });
-		}
-		if (!hardwareId) {
-			return fail(400, { error: 'Hardware ID is required', values });
-		}
-
-		try {
-			await createDevice(fetch, locals.token, {
-				home_id: Number(params.homeId),
-				room_id: roomId,
-				name,
-				device_type: deviceTypeRaw as DeviceType,
-				hardware_id: hardwareId,
-				is_active: isActive
-			});
-			return { success: true };
-		} catch (err) {
-			if (err instanceof ApiError) {
-				const body = err.body;
-				let msg = err.message;
-				if (body && typeof body === 'object') {
-					if ('hardware_id' in body)
-						msg = `Hardware ID: ${(body as Record<string, unknown>).hardware_id}`;
-					else if ('detail' in body) msg = String((body as { detail: unknown }).detail);
-					else if ('home_id' in body) msg = String((body as Record<string, unknown>).home_id);
-				}
-				return fail(err.status, { error: msg, values });
-			}
-			throw err;
-		}
-	},
-
 	update: async ({ request, fetch, locals }) => {
 		if (!locals.token) throw redirect(303, '/login');
 

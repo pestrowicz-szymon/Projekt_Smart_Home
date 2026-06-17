@@ -10,3 +10,5 @@ export { default as UserIcon } from './UserIcon.svelte';
 export { default as SlidersIcon } from './SlidersIcon.svelte';
 export { default as LogoutIcon } from './LogoutIcon.svelte';
 export { default as ChevronDownIcon } from './ChevronDownIcon.svelte';
+export { default as ChevronRightIcon } from './ChevronRightIcon.svelte';
+export { default as GateIcon } from './GateIcon.svelte';

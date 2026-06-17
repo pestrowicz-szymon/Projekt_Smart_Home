@@ -17,7 +17,7 @@ from .serializers import (
     HomeInviteCreateSerializer,
     HomeInviteRedeemSerializer,
     HomeInviteSerializer,
-    HomeMemberSerializer,
+    HomeMemberInviteSerializer,
 )
 from .services import create_home_invite, redeem_home_invite
 
@@ -136,7 +136,7 @@ def home_invites(request, home_id):
     request=HomeInviteRedeemSerializer,
     examples=[HOME_INVITE_REDEEM_EXAMPLE, HOME_INVITE_REDEEM_RESPONSE_EXAMPLE],
     responses={
-        201: HomeMemberSerializer,
+        201: HomeMemberInviteSerializer,
         400: OpenApiResponse(
             description="The code is missing, invalid, expired, or already used."
         ),
@@ -149,8 +149,8 @@ def redeem_invite(request):
     serializer = HomeInviteRedeemSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     membership = redeem_home_invite(
-        code_hash=serializer.validated_data["code"], user=request.user
+        raw_code=serializer.validated_data["code"], user=request.user
     )
     return Response(
-        HomeMemberSerializer(membership).data, status=status.HTTP_201_CREATED
+        HomeMemberInviteSerializer(membership).data, status=status.HTTP_201_CREATED
     )
