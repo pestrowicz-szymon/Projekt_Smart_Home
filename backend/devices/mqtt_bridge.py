@@ -72,9 +72,9 @@ def _configure_security(client: mqtt.Client, settings: MQTTConnectionSettings) -
         tls_kwargs["keyfile"] = resolve_path(settings.client_key)
 
     logger.debug("MQTT TLS Config: %s", tls_kwargs)
-    tls_kwargs["cert_reqs"] = ssl.CERT_NONE
+    tls_kwargs["cert_reqs"] = ssl.CERT_REQUIRED
     client.tls_set(**tls_kwargs)
-    client.tls_insecure_set(True)
+    client.tls_insecure_set(False)
 
 
 def _create_client(client_id: str | None = None) -> mqtt.Client:

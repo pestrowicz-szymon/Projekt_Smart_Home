@@ -205,6 +205,12 @@ def mfa_status(request):
 @permission_classes([IsAuthenticated])
 def mfa_setup(request):
     settings = _get_or_create_mfa_settings(request.user)
+    if settings.enabled:
+        return Response(
+            {"detail": "MFA is already enabled for this account."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     if not settings.secret:
         settings.secret = pyotp.random_base32()
         settings.enabled = False

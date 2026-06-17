@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-import random
+import secrets
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 class SmartGatewaySimulator:
     def __init__(self):
         self.gateway_cn = GATEWAY_CN
-        self.pairing_code = f"{random.randint(0, 999999):06d}"
+        self.pairing_code = f"{secrets.randbelow(1000000):06d}"
         self.mqtt_client: Optional[mqtt.Client] = None
         self.devices: Dict[str, DeviceSimulator] = get_devices(self)
         self.running = True
@@ -77,8 +77,9 @@ class SmartGatewaySimulator:
                 ca_certs=ca_certs,
                 certfile=certfile,
                 keyfile=keyfile,
+                cert_reqs=mqtt.ssl.CERT_REQUIRED,
             )
-            self.mqtt_client.tls_insecure_set(True)
+            self.mqtt_client.tls_insecure_set(False)
 
         try:
             self.mqtt_client.connect(MQTT_HOST, MQTT_PORT)

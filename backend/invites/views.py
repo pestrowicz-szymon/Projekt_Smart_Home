@@ -149,7 +149,7 @@ def redeem_invite(request):
     serializer = HomeInviteRedeemSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     membership = redeem_home_invite(
-        code_hash=serializer.validated_data["code"], user=request.user
+        raw_code=serializer.validated_data["code"], user=request.user
     )
     return Response(
         HomeMemberInviteSerializer(membership).data, status=status.HTTP_201_CREATED
