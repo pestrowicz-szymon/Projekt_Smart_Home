@@ -4,9 +4,13 @@ import logging
 import os
 import random
 import time
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+import httpx
 import paho.mqtt.client as mqtt
-import requests
+import pyotp
 
 
 # Simple .env loader
@@ -27,318 +31,270 @@ load_env()
 API_URL = os.getenv("API_URL", "http://localhost:8000/api")
 USERNAME = os.getenv("USERNAME", "admin")
 PASSWORD = os.getenv("PASSWORD", "admin")
+MFA_SECRET = os.getenv("MFA_SECRET", "")
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "5"))
 BATTERY_DRAIN_INTERVAL = int(os.getenv("BATTERY_DRAIN_INTERVAL", "60"))
 
 MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
-MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_PORT = int(os.getenv("MQTT_PORT", "8883"))
+MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "true").lower() in {"1", "true", "yes"}
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logger = logging.getLogger(__name__)
+
+
+class DeviceSimulator(ABC):
+    """Base class for all simulated devices."""
+
+    def __init__(self, simulator, device_data: Dict[str, Any]):
+        self.simulator = simulator
+        self.id = device_data["id"]
+        self.name = device_data["name"]
+        self.device_type = device_data["device_type"]
+        self.hardware_id = device_data["hardware_id"]
+
+        # Backend returns home object, we need its ID for topic construction
+        self.home_id = (
+            device_data["home"]["id"]
+            if isinstance(device_data.get("home"), dict)
+            else device_data.get("home_id")
+        )
+
+        self.state_payload = device_data.get("state_payload") or {}
+        self.current_state = device_data.get("current_state") or 0.0
+        self.battery = self.state_payload.get("battery", 100)
+        self.last_battery_update = time.time()
+
+    @abstractmethod
+    async def step(self):
+        """Perform one simulation step (logic + telemetry)."""
+        pass
+
+    def handle_command(self, action_type: str, payload: Dict[str, Any]):
+        """Respond to incoming MQTT commands."""
+        logger.info(f"[{self.name}] Received command: {action_type}")
+        if action_type in ["turn_on", "unlock"]:
+            self.current_state = 1.0
+        elif action_type in ["turn_off", "lock"]:
+            self.current_state = 0.0
+
+    async def report_telemetry(self, metric: str, value: Any, unit: str = ""):
+        """Report data via MQTT (tests the backend MQTT bridge)."""
+        topic = f"homes/{self.home_id}/devices/{self.hardware_id}/telemetry"
+        payload = {
+            "metric_name": metric,
+            "value": value,
+            "unit": unit,
+            "payload": {**self.state_payload, "battery": self.battery},
+        }
+        self.simulator.mqtt_client.publish(topic, json.dumps(payload), qos=1)
+
+    async def update_battery(self):
+        now = time.time()
+        if now - self.last_battery_update >= BATTERY_DRAIN_INTERVAL:
+            if self.battery > 0:
+                self.battery -= 1
+                self.state_payload["battery"] = self.battery
+            self.last_battery_update = now
+
+
+class Thermometer(DeviceSimulator):
+    async def step(self):
+        # Random walk for temperature
+        self.current_state += (
+            0.1 * random.binomialvariate(1, 0.05) * (-1) ** random.choice([0, 1])
+        )
+        self.current_state = round(self.current_state, 2)
+        await self.report_telemetry("temperature", self.current_state, "°C")
+
+
+class SmokeDetector(DeviceSimulator):
+    async def step(self):
+        if self.current_state == 0:
+            if random.random() > 0.995:
+                self.current_state = 1.0
+                logger.warning(f"[{self.name}] !!! SMOKE DETECTED !!!")
+        else:
+            if random.random() > 0.9:
+                self.current_state = 0.0
+                logger.info(f"[{self.name}] Smoke cleared.")
+
+        await self.report_telemetry("smoke_level", self.current_state)
+
+
+class GenericActuator(DeviceSimulator):
+    async def step(self):
+        # Actuators just report their current state (usually changed via MQTT)
+        await self.report_telemetry("status", self.current_state)
 
 
 class SmartHomeSimulator:
     def __init__(self):
-        self.api_url = API_URL
-        self.username = USERNAME
-        self.password = PASSWORD
-        self.access_token = None
-        self.refresh_token = None
-        self.device_tasks = {}  # hardware_id -> Task
-        self.device_states = {}  # hardware_id -> dict with current state
+        self.token: Optional[str] = None
+        self.client = httpx.AsyncClient(base_url=API_URL, timeout=10.0)
+        self.mqtt_client: Optional[mqtt.Client] = None
+        self.devices: Dict[str, DeviceSimulator] = {}
         self.running = True
-        self.mqtt_client = None
 
-    async def login(self):
-        logging.info(f"Logging in to {self.api_url} as {self.username}...")
-        url = f"{self.api_url}/users/login/"
-
-        def do_login():
-            return requests.post(
-                url,
-                json={"username": self.username, "password": self.password},
-                timeout=10,
+    async def login(self) -> bool:
+        """Authenticated login with support for MFA."""
+        logger.info(f"Logging in as {USERNAME}...")
+        try:
+            # 1. First stage: Username/Password
+            resp = await self.client.post(
+                "/users/login/", json={"username": USERNAME, "password": PASSWORD}
             )
 
-        try:
-            response = await asyncio.to_thread(do_login)
-            response.raise_for_status()
-            data = response.json()
-            self.access_token = data["access"]
-            self.refresh_token = data["refresh"]
-            logging.info("Login successful.")
+            if resp.status_code != 200:
+                logger.error(f"Login failed: {resp.text}")
+                return False
+
+            data = resp.json()
+
+            # 2. Handle MFA if required
+            if data.get("mfa_required"):
+                if not MFA_SECRET:
+                    logger.error(
+                        "MFA required by backend but MFA_SECRET not set in .env"
+                    )
+                    return False
+
+                totp = pyotp.TOTP(MFA_SECRET)
+                mfa_code = totp.now()
+                logger.info(f"MFA required. Sending TOTP code: {mfa_code}")
+
+                resp = await self.client.post(
+                    "/users/login/",
+                    json={"mfa_token": data["mfa_token"], "mfa_code": mfa_code},
+                )
+
+                if resp.status_code != 200:
+                    logger.error(f"MFA verification failed: {resp.text}")
+                    return False
+                data = resp.json()
+
+            self.token = data["access"]
+            self.client.headers.update({"Authorization": f"Bearer {self.token}"})
+            logger.info("Login successful (MFA verified).")
             return True
+
         except Exception as e:
-            logging.error(f"Login failed: {e}")
+            logger.exception("Connection error during login")
             return False
 
-    def get_headers(self):
-        return {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
-
-    async def fetch_devices(self):
-        url = f"{self.api_url}/devices/devices/"
-
-        def do_fetch():
-            return requests.get(url, headers=self.get_headers(), timeout=10)
-
-        try:
-            response = await asyncio.to_thread(do_fetch)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logging.error(f"Failed to fetch devices: {e}")
-            if (
-                isinstance(e, requests.exceptions.HTTPError)
-                and e.response.status_code == 401
-            ):
-                await self.login()
-            return []
-
-    async def update_reading(
-        self, device_id, metric_name, value, unit="", payload=None
-    ):
-        url = f"{self.api_url}/devices/devices/{device_id}/readings/"
-        data = {
-            "metric_name": metric_name,
-            "value": value,
-            "unit": unit,
-            "payload": payload or {},
-        }
-
-        def do_update():
-            return requests.post(url, json=data, headers=self.get_headers(), timeout=10)
-
-        try:
-            response = await asyncio.to_thread(do_update)
-            response.raise_for_status()
-            return True
-        except Exception as e:
-            logging.error(f"Failed to update reading for device {device_id}: {e}")
-            return False
-
-    async def patch_device(self, device_id, data):
-        url = f"{self.api_url}/devices/devices/{device_id}/"
-
-        def do_patch():
-            return requests.patch(
-                url, json=data, headers=self.get_headers(), timeout=10
-            )
-
-        try:
-            response = await asyncio.to_thread(do_patch)
-            response.raise_for_status()
-            return True
-        except Exception as e:
-            logging.error(f"Failed to patch device {device_id}: {e}")
-            return False
-
-    def on_mqtt_connect(self, client, userdata, flags, reason_code, properties):
-        logging.info(f"Connected to MQTT broker with result code: {reason_code}")
-        client.subscribe("homes/+/devices/+/commands")
-
-    def on_mqtt_message(self, client, userdata, msg):
-        try:
-            payload = json.loads(msg.payload.decode())
-            topic_parts = msg.topic.split("/")
-            # homes/{home_id}/devices/{hardware_id}/commands
-            home_id = topic_parts[1]
-            hardware_id = topic_parts[3]
-
-            if hardware_id in self.device_states:
-                action_type = payload.get("action_type")
-                correlation_id = payload.get("correlation_id")
-
-                logging.info(f"Received action {action_type} for {hardware_id}")
-
-                # Update internal state based on action
-                if action_type in ["turn_on", "unlock"]:
-                    self.device_states[hardware_id]["current_state"] = 1.0
-                elif action_type in ["turn_off", "lock"]:
-                    self.device_states[hardware_id]["current_state"] = 0.0
-
-                # Send ACK back to backend
-                ack_topic = f"homes/{home_id}/devices/{hardware_id}/commands/ack"
-                ack_payload = {"correlation_id": correlation_id, "status": "success"}
-                client.publish(ack_topic, json.dumps(ack_payload))
-                logging.info(f"Sent ACK for action {action_type} on {hardware_id}")
-
-        except Exception as e:
-            logging.error(f"Error handling MQTT message: {e}")
-
-    async def simulate_device(self, device_data):
-        device_id = device_data["id"]
-        name = device_data["name"]
-        device_type = device_data["device_type"]
-        hardware_id = device_data["hardware_id"]
-
-        logging.info(f"START simulation: {name} ({device_type}) [{hardware_id}]")
-
-        state_payload = device_data.get("state_payload") or {}
-        if not isinstance(state_payload, dict):
-            state_payload = {}
-
-        battery = state_payload.get("battery", 100)
-        current_state = device_data.get("current_state") or 0.0
-
-        # Initialize shared state
-        self.device_states[hardware_id] = {"current_state": current_state}
-
-        last_battery_update = time.time()
-
-        try:
-            while self.running:
-                # Read from shared state (might have been updated by MQTT)
-                current_state = self.device_states[hardware_id]["current_state"]
-
-                match device_type:
-                    case "thermometer":
-                        current_state += (
-                            0.1
-                            * random.binomialvariate(1, 0.05)
-                            * (-1) ** random.choice([0, 1])
-                        )
-                        # Update shared state back
-                        self.device_states[hardware_id]["current_state"] = current_state
-
-                        await self.update_reading(
-                            device_id, "temperature", current_state, "°C"
-                        )
-                        await self.patch_device(
-                            device_id, {"current_state": current_state}
-                        )
-                        logging.info(f"[{name}] Temperature: {current_state}°C")
-
-                    case "smoke_detector":
-                        if current_state == 0:
-                            if random.random() > 0.995:
-                                current_state = 1
-                                self.device_states[hardware_id]["current_state"] = (
-                                    current_state
-                                )
-                                await self.update_reading(
-                                    device_id, "smoke_level", current_state
-                                )
-                                await self.patch_device(
-                                    device_id, {"current_state": current_state}
-                                )
-                                logging.warning(f"[{name}] SMOKE DETECTED")
-                            else:
-                                logging.info(f"[{name}] smoke not detected")
-                        elif random.random() > 0.9:
-                            current_state = 0
-                            self.device_states[hardware_id]["current_state"] = (
-                                current_state
-                            )
-                            await self.update_reading(
-                                device_id, "smoke_level", current_state
-                            )
-                            await self.patch_device(
-                                device_id, {"current_state": current_state}
-                            )
-                            logging.warning(f"[{name}] smoke not detected anymore")
-                        else:
-                            logging.info(f"[{name}] SMOKE DETECTED")
-
-                    case "generic_sensor":
-                        val = random.normalvariate(0, 0.05)
-                        current_state = round(max(0, min(current_state + val, 100)), 2)
-                        self.device_states[hardware_id]["current_state"] = current_state
-                        await self.update_reading(device_id, "value", current_state)
-                        await self.patch_device(
-                            device_id, {"current_state": current_state}
-                        )
-                        logging.info(f"[{name}] Value: {current_state}")
-
-                    case "actuator" | "light" | "lock":
-                        await self.update_reading(device_id, "status", current_state)
-                        await self.patch_device(
-                            device_id, {"current_state": current_state}
-                        )
-                        logging.info(
-                            f"[{name}] {device_type.capitalize()} state: {current_state}"
-                        )
-
-                # Battery state
-                now = time.time()
-                if now - last_battery_update >= BATTERY_DRAIN_INTERVAL:
-                    if battery > 0:
-                        battery -= 1
-                        state_payload["battery"] = battery
-                        await self.patch_device(
-                            device_id, {"state_payload": state_payload}
-                        )
-                        logging.info(f"⚡ [{name}] Battery: {battery}%")
-                    last_battery_update = now
-
-                await asyncio.sleep(UPDATE_INTERVAL + random.uniform(-1, 1))
-
-        except asyncio.CancelledError:
-            logging.info(f"STOP simulation: {name}")
-            if hardware_id in self.device_states:
-                del self.device_states[hardware_id]
-        except Exception as e:
-            logging.error(f"ERROR in {name} simulation: {e}")
-
-    async def run(self):
-        if not await self.login():
-            logging.error("Initial login failed. Exiting.")
-            return
-
-        # Start MQTT client
+    def setup_mqtt(self):
         self.mqtt_client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2
         )
         self.mqtt_client.on_connect = self.on_mqtt_connect
         self.mqtt_client.on_message = self.on_mqtt_message
+
+        if MQTT_USE_TLS:
+            sim_dir = Path(__file__).resolve().parent
+
+            def resolve(p):
+                return str(sim_dir / p) if p and not Path(p).is_absolute() else p
+
+            self.mqtt_client.tls_set(
+                ca_certs=resolve(os.getenv("MQTT_CA_CERTS")),
+                certfile=resolve(os.getenv("MQTT_CLIENT_CERT")),
+                keyfile=resolve(os.getenv("MQTT_CLIENT_KEY")),
+            )
+            # For self-signed certs in dev, we need to allow the certificate chain
+            # but we can skip strict hostname verification.
+            self.mqtt_client.tls_insecure_set(True)
+
         try:
             self.mqtt_client.connect(MQTT_HOST, MQTT_PORT)
             self.mqtt_client.loop_start()
-            logging.info(f"MQTT client started, connected to {MQTT_HOST}:{MQTT_PORT}")
         except Exception as e:
-            logging.error(f"Failed to connect to MQTT broker: {e}")
-            # Continue anyway, telemetry might still work via REST
+            logger.error(f"Could not connect to MQTT: {e}")
+            # Don't crash the whole simulator if MQTT is temporarily down
 
-        logging.info("Starting Device Manager (searching for devices every 30s)...")
+    def on_mqtt_connect(self, client, userdata, flags, rc, props):
+        logger.info("Connected to MQTT Broker")
+        client.subscribe("homes/+/devices/+/commands")
 
+    def on_mqtt_message(self, client, userdata, msg):
         try:
-            while self.running:
-                devices = await self.fetch_devices()
-                if not devices:
-                    logging.warning("No devices found or error fetching devices.")
+            topic_parts = msg.topic.split("/")
+            hw_id = topic_parts[3]
+            if hw_id in self.devices:
+                payload = json.loads(msg.payload.decode())
+                device = self.devices[hw_id]
+                device.handle_command(
+                    payload["action_type"], payload.get("payload", {})
+                )
 
-                active_hw_ids = set()
-                for dev in devices:
-                    hw_id = dev["hardware_id"]
-                    active_hw_ids.add(hw_id)
+                # Send ACK
+                ack_topic = f"homes/{topic_parts[1]}/devices/{hw_id}/commands/ack"
+                self.mqtt_client.publish(
+                    ack_topic,
+                    json.dumps(
+                        {
+                            "correlation_id": payload["correlation_id"],
+                            "status": "success",
+                        }
+                    ),
+                )
+        except Exception:
+            logger.exception("Error handling MQTT command")
 
-                    if hw_id not in self.device_tasks:
-                        task = asyncio.create_task(self.simulate_device(dev))
-                        self.device_tasks[hw_id] = task
+    async def fetch_devices(self):
+        try:
+            resp = await self.client.get("/devices/devices/")
+            if resp.status_code == 401:
+                await self.login()
+                return await self.fetch_devices()
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch devices: {e}")
+            return []
 
-                # Cleanup removed devices
-                to_remove = []
-                for hw_id in self.device_tasks:
-                    if hw_id not in active_hw_ids:
-                        self.device_tasks[hw_id].cancel()
-                        to_remove.append(hw_id)
+    async def run(self):
+        if not await self.login():
+            return
+        self.setup_mqtt()
 
-                for hw_id in to_remove:
-                    del self.device_tasks[hw_id]
+        logger.info("IoT Simulator running. Press Ctrl+C to stop.")
 
-                await asyncio.sleep(30)
+        while self.running:
+            # 1. Sync device list from backend
+            api_devices = await self.fetch_devices()
+            active_hw_ids = {d["hardware_id"] for d in api_devices}
 
-        except asyncio.CancelledError:
-            self.running = False
-            if self.mqtt_client:
-                self.mqtt_client.loop_stop()
-                self.mqtt_client.disconnect()
-            for task in self.device_tasks.values():
-                task.cancel()
-            logging.info("Manager stopped.")
+            # 2. Add new devices
+            for d in api_devices:
+                hw_id = d["hardware_id"]
+                if hw_id not in self.devices:
+                    match d["device_type"]:
+                        case "thermometer":
+                            cls = Thermometer
+                        case "smoke_detector":
+                            cls = SmokeDetector
+                        case _:
+                            cls = GenericActuator
+                    self.devices[hw_id] = cls(self, d)
+                    logger.info(
+                        f"Started simulation for: {d['name']} ({d['device_type']})"
+                    )
+
+            # 3. Cleanup removed devices
+            self.devices = {
+                hw_id: dev
+                for hw_id, dev in self.devices.items()
+                if hw_id in active_hw_ids
+            }
+
+            # 4. Simulation step for all devices
+            for dev in list(self.devices.values()):
+                await dev.update_battery()
+                await dev.step()
+
+            await asyncio.sleep(UPDATE_INTERVAL)
 
 
 if __name__ == "__main__":
@@ -346,5 +302,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(simulator.run())
     except KeyboardInterrupt:
-        logging.info("Shutting down simulator...")
+        logger.info("Shutdown requested.")
+    finally:
         simulator.running = False
