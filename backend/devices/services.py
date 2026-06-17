@@ -110,19 +110,44 @@ def mark_action_sent(action: DeviceAction) -> DeviceAction:
     return action
 
 
+@transaction.atomic
 def mark_action_acked(action: DeviceAction) -> DeviceAction:
     action.status = DeviceAction.Status.ACKED
     action.save(update_fields=["status"])
 
-    # Notify subscribers about action
+    # Update the device state based on the action that was just acked
+    device = action.device
+    if action.action_type in ["turn_on", "unlock"]:
+        device.current_state = 1.0
+    elif action.action_type in ["turn_off", "lock"]:
+        device.current_state = 0.0
+
+    device.save(update_fields=["current_state", "updated_at"])
+
+    # Notify subscribers about action success
     notify_device_update(
-        action.device.home.id,
+        device.home.id,
         {
             "type": "action_acked",
-            "device_id": action.device.id,
+            "device_id": device.id,
             "action_id": action.id,
             "correlation_id": action.correlation_id,
             "status": action.status,
+        },
+    )
+
+    # Also notify about the device state change
+    notify_device_update(
+        device.home.id,
+        {
+            "type": "device_update",
+            "device_id": device.id,
+            "current_state": device.current_state,
+            "state_payload": device.state_payload,
+            "last_seen_at": device.last_seen_at.isoformat()
+            if device.last_seen_at
+            else None,
+            "status": device.status,
         },
     )
 

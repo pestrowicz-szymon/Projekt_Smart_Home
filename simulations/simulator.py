@@ -6,7 +6,7 @@ import random
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 import paho.mqtt.client as mqtt
@@ -55,12 +55,12 @@ class DeviceSimulator(ABC):
         self.device_type = device_data["device_type"]
         self.hardware_id = device_data["hardware_id"]
 
-        # Backend returns home object, we need its ID for topic construction
-        self.home_id = (
-            device_data["home"]["id"]
-            if isinstance(device_data.get("home"), dict)
-            else device_data.get("home_id")
-        )
+        # Backend returns home ID as 'home' (integer) or nested object
+        home_val = device_data.get("home")
+        if isinstance(home_val, dict):
+            self.home_id = home_val.get("id")
+        else:
+            self.home_id = home_val
 
         self.state_payload = device_data.get("state_payload") or {}
         self.current_state = device_data.get("current_state") or 0.0
