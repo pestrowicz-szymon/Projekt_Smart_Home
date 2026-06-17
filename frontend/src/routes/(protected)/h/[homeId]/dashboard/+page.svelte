@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageProps, ActionData } from './$types';
-	import type { Device, Room } from '$lib/types/device';
+	import type { Device, Room, DeviceGroup } from '$lib/types/device';
 	import DeviceCard from '$lib/components/DeviceCard.svelte';
 	import { Thermometer, Light, Lock } from '$lib/components/devices';
 	import { deviceStore } from '$lib/stores/devices.svelte';
@@ -9,7 +9,7 @@
 
 	const displayName = $derived(data.user.first_name || data.user.username);
 
-	const devicesByRoom = $derived.by(() => {
+	const devicesByRoom = $derived.by((): DeviceGroup[] => {
 		const rooms = data.rooms;
 		const devices = deviceStore.devices;
 

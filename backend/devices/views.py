@@ -21,6 +21,8 @@ from rest_framework.renderers import BaseRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from users.permissions import IsMFAVerified
+
 from .models import Device, DeviceAction, Home, Room, SensorData
 from .mqtt_bridge import publish_device_action
 from .permissions import (
@@ -283,7 +285,7 @@ HOME_DEVICES_FILTER_EXAMPLE = OpenApiExample(
 )
 class HomeViewSet(viewsets.ModelViewSet):
     serializer_class = HomeSerializer
-    permission_classes = [IsAuthenticated, CanAccessHome]
+    permission_classes = [IsAuthenticated, IsMFAVerified, CanAccessHome]
 
     def get_queryset(self):
         user = self.request.user
@@ -483,12 +485,14 @@ class RoomViewSet(viewsets.ModelViewSet):
 )
 class DeviceViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceSerializer
-    permission_classes = [IsAuthenticated, CanAccessDevice]
+    permission_classes = [IsAuthenticated, IsMFAVerified, CanAccessDevice]
 
     def get_queryset(self):
         user = self.request.user
+        # Optimization: Use select_related for 1-to-1 or Many-to-1 relations
+        # This joins the tables in SQL instead of doing separate queries
         queryset = Device.objects.select_related(
-            "home", "home__owner", "room", "room__home"
+            "home", "room", "home__owner"
         ).prefetch_related("readings", "actions")
         room_id = self.request.query_params.get("room_id")
         if room_id:

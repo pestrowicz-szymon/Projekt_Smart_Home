@@ -49,6 +49,8 @@ export interface Device {
 	updated_at: string;
 }
 
+export type DeviceGroup = { room: Room | null; devices: Device[] };
+
 export interface CreateDevicePayload {
 	home_id: number;
 	room_id?: number | null;

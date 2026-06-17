@@ -21,33 +21,11 @@ from .serializers import (
 MFA_CHALLENGE_LIFETIME = timedelta(minutes=5)
 
 
-def _request_payload(request):
-    data = request.data
-
-    if isinstance(data, dict):
-        return data
-
-    if hasattr(data, "dict"):
-        return data.dict()
-
-    if isinstance(data, (bytes, bytearray)):
-        data = data.decode("utf-8")
-
-    if isinstance(data, str):
-        data = data.strip()
-        if not data:
-            return {}
-        try:
-            parsed = json.loads(data)
-        except json.JSONDecodeError:
-            return {}
-        return parsed if isinstance(parsed, dict) else {}
-
-    return {}
-
-
-def _issue_tokens(user):
+def _issue_tokens(user, mfa_verified=False):
     refresh = RefreshToken.for_user(user)
+    # Add custom claim to the access token
+    refresh.access_token["mfa_verified"] = mfa_verified
+
     return {
         "refresh": str(refresh),
         "access": str(refresh.access_token),
@@ -71,7 +49,7 @@ def _verify_totp(secret: str, code: str) -> bool:
 @permission_classes([AllowAny])
 def register(request):
     """Register a new user"""
-    serializer = RegisterSerializer(data=_request_payload(request))
+    serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response(
@@ -91,7 +69,7 @@ def get_user(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request):
-    payload = _request_payload(request)
+    payload = request.data
     mfa_token = payload.get("mfa_token")
     if mfa_token:
         serializer = MFALoginVerifySerializer(data=payload)
@@ -121,7 +99,10 @@ def login(request):
 
         challenge.consumed_at = timezone.now()
         challenge.save(update_fields=["consumed_at"])
-        return Response(_issue_tokens(challenge.user), status=status.HTTP_200_OK)
+        # MFA passed, issue token with mfa_verified=True
+        return Response(
+            _issue_tokens(challenge.user, mfa_verified=True), status=status.HTTP_200_OK
+        )
 
     username = payload.get("username")
     password = payload.get("password")
@@ -148,7 +129,8 @@ def login(request):
             status=status.HTTP_200_OK,
         )
 
-    return Response(_issue_tokens(user), status=status.HTTP_200_OK)
+    # MFA disabled, issue token with mfa_verified=True (trusted since MFA is off)
+    return Response(_issue_tokens(user, mfa_verified=True), status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -183,7 +165,7 @@ def mfa_setup(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mfa_verify_setup(request):
-    serializer = MFASetupVerifySerializer(data=_request_payload(request))
+    serializer = MFASetupVerifySerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     settings = _get_or_create_mfa_settings(request.user)
@@ -219,7 +201,7 @@ def mfa_disable(request):
 def logout(request):
     """Logout endpoint (blacklist the refresh token)"""
     try:
-        payload = _request_payload(request)
+        payload = request.data
         refresh_token = payload.get("refresh")
         if refresh_token:
             token = RefreshToken(refresh_token)
