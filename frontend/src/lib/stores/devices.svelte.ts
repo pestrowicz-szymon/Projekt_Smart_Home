@@ -5,9 +5,9 @@ export type DeviceEvent =
 	| {
 			type: 'device_update';
 			device_id: number;
-			current_state: any;
-			state_payload: any;
-			last_seen_at: string;
+			current_state: number;
+			state_payload: Record<string, unknown>;
+			last_seen_at: string | null;
 			status: string;
 	  }
 	| {
@@ -32,10 +32,9 @@ class DeviceStore {
 	private currentHomeId: number | null = null;
 	private eventSource: EventSource | null = null;
 
-	init(initialDevices: Device[]) {
+	init(initialDevices: Device[], homeId: number) {
 		this.devices = initialDevices;
-		const newHomeId = initialDevices[0]?.home_id ?? null;
-
+		const newHomeId = homeId;
 		if (browser) {
 			if (this.status === 'disconnected') {
 				this.currentHomeId = newHomeId;
@@ -97,12 +96,10 @@ class DeviceStore {
 					current_state: event.current_state,
 					state_payload: event.state_payload,
 					last_seen_at: event.last_seen_at,
-					status: event.status as any
+					status: event.status as Device['status']
 				};
 			}
 		} else if (event.type === 'action_acked' || event.type === 'action_failed') {
-			// Optional: Handle action status updates specifically if needed
-			// For now, device_update usually follows or is enough
 			console.log(`Action ${event.type}:`, event.correlation_id);
 		}
 	}

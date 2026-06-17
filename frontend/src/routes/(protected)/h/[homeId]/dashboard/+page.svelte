@@ -9,8 +9,6 @@
 
 	const displayName = $derived(data.user.first_name || data.user.username);
 
-	type DeviceGroup = { room: Room | null; devices: Device[] };
-
 	const devicesByRoom = $derived.by(() => {
 		const rooms = data.rooms;
 		const devices = deviceStore.devices;

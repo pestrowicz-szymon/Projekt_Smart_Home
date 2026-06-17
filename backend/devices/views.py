@@ -1,22 +1,23 @@
 import asyncio
 import json
 import logging
-import os
 
 import psycopg
+import psycopg.sql
 from django.db.models import Q
 from django.http import StreamingHttpResponse
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
-    OpenApiTypes,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import BaseRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -47,8 +48,6 @@ from .services import (
 )
 
 logger = logging.getLogger(__name__)
-
-from rest_framework.renderers import BaseRenderer
 
 
 class SSERenderer(BaseRenderer):
@@ -118,10 +117,15 @@ class DeviceEventStreamView(APIView):
                 ) as conn:
                     async with conn.cursor() as cur:
                         for home_id in home_ids:
-                            await cur.execute(f"LISTEN home_{home_id}_updates")
+                            await cur.execute(
+                                psycopg.sql.SQL("LISTEN {channel}").format(
+                                    channel=psycopg.sql.Identifier(
+                                        f"home_{home_id}_updates"
+                                    )
+                                )
+                            )
 
                         yield ": subscribed to channels\n\n"
-
                         async for notify in conn.notifies(timeout=30):
                             if notify is None:
                                 yield ": keep-alive\n\n"
@@ -249,7 +253,6 @@ DEVICE_RESPONSE_EXAMPLE = OpenApiExample(
 HOME_DEVICES_FILTER_EXAMPLE = OpenApiExample(
     "Filter by room",
     value=7,
-    parameter_only="room_id",
 )
 
 
@@ -624,7 +627,9 @@ class DeviceActionViewSet(
         responses=SensorDataSerializer,
     ),
     retrieve=extend_schema(
-        tags=["readings"], summary="Get sensor reading", responses=SensorDataSerializer
+        tags=["readings"],
+        summary="Get sensor reading",
+        responses=SensorDataSerializer,
     ),
 )
 class SensorDataViewSet(

@@ -5,14 +5,15 @@
 
 	interface Props {
 		initialDevices: Device[];
+		homeId: number;
 		enabled?: boolean;
 	}
 
-	let { initialDevices, enabled = true }: Props = $props();
+	let { initialDevices, homeId, enabled = true }: Props = $props();
 
 	onMount(() => {
 		if (enabled) {
-			deviceStore.init(initialDevices);
+			deviceStore.init(initialDevices, homeId);
 		}
 	});
 </script>

@@ -7,15 +7,15 @@ from django.utils import timezone
 from .models import Device, DeviceAction, SensorData
 
 
-def build_telemetry_topic(home_id: int, hardware_id: str) -> str:
+def build_telemetry_topic(home_id: int | str, hardware_id: str) -> str:
     return f"homes/{home_id}/devices/{hardware_id}/telemetry"
 
 
-def build_command_topic(home_id: int, hardware_id: str) -> str:
+def build_command_topic(home_id: int | str, hardware_id: str) -> str:
     return f"homes/{home_id}/devices/{hardware_id}/commands"
 
 
-def build_command_ack_topic(home_id: int, hardware_id: str) -> str:
+def build_command_ack_topic(home_id: int | str, hardware_id: str) -> str:
     return f"homes/{home_id}/devices/{hardware_id}/commands/ack"
 
 
@@ -68,13 +68,15 @@ def record_sensor_reading(
 
     # Notify subscribers
     notify_device_update(
-        device.home_id,
+        device.home.id,
         {
             "type": "device_update",
             "device_id": device.id,
             "current_state": device.current_state,
             "state_payload": device.state_payload,
-            "last_seen_at": device.last_seen_at.isoformat(),
+            "last_seen_at": device.last_seen_at.isoformat()
+            if device.last_seen_at
+            else None,
             "status": device.status,
         },
     )
@@ -112,9 +114,9 @@ def mark_action_acked(action: DeviceAction) -> DeviceAction:
     action.status = DeviceAction.Status.ACKED
     action.save(update_fields=["status"])
 
-    # Notify subscribers about action success
+    # Notify subscribers about action
     notify_device_update(
-        action.device.home_id,
+        action.device.home.id,
         {
             "type": "action_acked",
             "device_id": action.device.id,
@@ -133,7 +135,7 @@ def mark_action_failed(action: DeviceAction) -> DeviceAction:
 
     # Notify subscribers about action failure
     notify_device_update(
-        action.device.home_id,
+        action.device.home.id,
         {
             "type": "action_failed",
             "device_id": action.device.id,

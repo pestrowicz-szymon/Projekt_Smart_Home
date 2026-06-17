@@ -41,10 +41,9 @@ export const GET: RequestHandler = async ({ cookies }) => {
 				'X-Accel-Buffering': 'no'
 			}
 		});
-	} catch (err: any) {
-		console.error(`[SSE Proxy] Fetch failed:`, err.message || err);
-		return new Response(`Internal Server Error: ${err.message || 'Unknown error'}`, {
-			status: 500
-		});
+	} catch (err: unknown) {
+		const message = err instanceof Error ? err.message : 'Unknown error';
+		console.error(`[SSE Proxy] Fetch failed:`, message);
+		return new Response(`Internal Server Error: ${message}`, { status: 500 });
 	}
 };
