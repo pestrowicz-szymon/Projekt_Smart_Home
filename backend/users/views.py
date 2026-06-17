@@ -12,11 +12,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from devices.models import HomeMember
 
 from .models import UserMFALoginChallenge, UserMFASettings
 from .serializers import (
+    CustomTokenRefreshSerializer,
     HomeMembershipSerializer,
     HomeMembershipUpdateSerializer,
     LoginRequestSerializer,
@@ -45,7 +47,8 @@ def user_can_manage_home_members(user, membership):
 
 def _issue_tokens(user, mfa_verified=False):
     refresh = RefreshToken.for_user(user)
-    # Add custom claim to the access token
+    # Add custom claim to both tokens to support persistence across refreshes
+    refresh["mfa_verified"] = mfa_verified
     refresh.access_token["mfa_verified"] = mfa_verified
 
     return {
@@ -321,3 +324,7 @@ def update_home_membership(request, membership_id: int):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(HomeMembershipSerializer(membership).data)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer

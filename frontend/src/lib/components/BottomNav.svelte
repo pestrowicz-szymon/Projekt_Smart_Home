@@ -10,6 +10,8 @@
 	let { onMoreClick }: Props = $props();
 
 	const homeId = $derived(page.params.homeId);
+	const activeHomeId = $derived(page.data.activeHome?.id);
+	const targetHomeId = $derived(homeId || activeHomeId);
 	const pathname = $derived(page.url.pathname);
 
 	const onDashboard = $derived(pathname.endsWith('/dashboard'));
@@ -28,7 +30,7 @@
 	<ul class="mx-auto grid max-w-md grid-cols-4">
 		<li class="contents">
 			<a
-				href={homeId ? resolve(`/h/${homeId}/dashboard`) : resolve('/h')}
+				href={targetHomeId ? resolve(`/h/${targetHomeId}/dashboard`) : resolve('/h')}
 				class="{tabBase} {onDashboard ? tabActive : tabIdle}"
 				aria-current={onDashboard ? 'page' : undefined}
 			>
@@ -38,7 +40,7 @@
 		</li>
 		<li class="contents">
 			<a
-				href={homeId ? resolve(`/h/${homeId}/devices`) : resolve('/h')}
+				href={targetHomeId ? resolve(`/h/${targetHomeId}/devices`) : resolve('/h')}
 				class="{tabBase} {onDevices ? tabActive : tabIdle}"
 				aria-current={onDevices ? 'page' : undefined}
 			>
@@ -48,7 +50,7 @@
 		</li>
 		<li class="contents">
 			<a
-				href={homeId ? resolve(`/h/${homeId}/automations`) : resolve('/h')}
+				href={targetHomeId ? resolve(`/h/${targetHomeId}/automations`) : resolve('/h')}
 				class="{tabBase} {onAutomations ? tabActive : tabIdle}"
 				aria-current={onAutomations ? 'page' : undefined}
 			>

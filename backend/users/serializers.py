@@ -1,9 +1,34 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from devices.models import HomeMember
 
 from .models import UserMFASettings
+
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        # Copy mfa_verified claim from the old refresh token to the new access token
+        refresh = RefreshToken(attrs["refresh"])
+        mfa_verified = refresh.get("mfa_verified", False)
+
+        # Data contains 'access' (and maybe 'refresh' if rotation is enabled)
+        # We need to re-encode the access token with the claim
+        access = RefreshToken(attrs["refresh"]).access_token
+        access["mfa_verified"] = mfa_verified
+        data["access"] = str(access)
+
+        # If refresh token rotation is on, also preserve it in the new refresh token
+        if "refresh" in data:
+            new_refresh = RefreshToken(data["refresh"])
+            new_refresh["mfa_verified"] = mfa_verified
+            data["refresh"] = str(new_refresh)
+
+        return data
 
 
 class HomeMembershipSerializer(serializers.ModelSerializer):
