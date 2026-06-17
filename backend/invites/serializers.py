@@ -7,15 +7,16 @@ from devices.models import HomeMember
 from .models import HomeInvite
 
 
-class PublicUserSerializer(serializers.ModelSerializer):
+class PublicUserInviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "first_name", "last_name")
+        ref_name = "PublicUserInvite"
 
 
 class HomeInviteSerializer(serializers.ModelSerializer):
-    created_by = PublicUserSerializer(read_only=True)
-    used_by = PublicUserSerializer(read_only=True)
+    created_by = PublicUserInviteSerializer(read_only=True)
+    used_by = PublicUserInviteSerializer(read_only=True)
     status = serializers.SerializerMethodField()
 
     class Meta:
@@ -47,7 +48,7 @@ class HomeInviteSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         if obj.revoked_at is not None:
             return "revoked"
         if obj.used_at is not None:
@@ -70,10 +71,11 @@ class HomeInviteRedeemSerializer(serializers.Serializer):
     )
 
 
-class HomeMemberSerializer(serializers.ModelSerializer):
-    user = PublicUserSerializer(read_only=True)
+class HomeMemberInviteSerializer(serializers.ModelSerializer):
+    user = PublicUserInviteSerializer(read_only=True)
 
     class Meta:
         model = HomeMember
         fields = ("id", "home", "user", "role", "can_manage_devices", "created_at")
         read_only_fields = ("id", "home", "user", "created_at")
+        ref_name = "HomeMemberInvite"

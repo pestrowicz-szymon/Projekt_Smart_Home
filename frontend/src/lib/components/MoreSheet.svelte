@@ -37,8 +37,6 @@
 		<Drawer.Content
 			class="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none"
 		>
-			<Drawer.Handle class="mx-auto my-2 h-1.5 w-10 shrink-0 rounded-pill bg-line-strong" />
-
 			<Drawer.Title class="sr-only">More options</Drawer.Title>
 			<Drawer.Description class="sr-only">
 				Switch homes, navigate to home settings, or sign out.
@@ -109,6 +107,16 @@
 						>
 							<UserIcon class="h-5 w-5 text-foreground-muted" />
 							<span class="text-foreground">{displayName}</span>
+						</a>
+					</li>
+					<li>
+						<a
+							href={resolve('/settings/gateways')}
+							onclick={close}
+							class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken"
+						>
+							<SlidersIcon class="h-5 w-5 text-foreground-muted" />
+							<span class="text-foreground">Gateways</span>
 						</a>
 					</li>
 					<li>

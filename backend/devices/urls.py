@@ -5,6 +5,7 @@ from .views import (
     DeviceActionViewSet,
     DeviceEventStreamView,
     DeviceViewSet,
+    GatewayViewSet,
     HomeViewSet,
     RoomViewSet,
     SensorDataViewSet,
@@ -13,6 +14,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r"homes", HomeViewSet, basename="home")
 router.register(r"rooms", RoomViewSet, basename="room")
+router.register(r"gateways", GatewayViewSet, basename="gateway")
 router.register(r"devices", DeviceViewSet, basename="device")
 router.register(r"actions", DeviceActionViewSet, basename="device-action")
 router.register(r"readings", SensorDataViewSet, basename="sensor-reading")

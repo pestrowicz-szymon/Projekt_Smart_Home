@@ -1,6 +1,6 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
-from .models import Device, Home, Room
+from .models import Device, Gateway, Home, Room
 
 
 def user_has_home_access(user, home: Home, write: bool = False) -> bool:
@@ -14,18 +14,25 @@ def user_has_home_access(user, home: Home, write: bool = False) -> bool:
         return False
 
     if write:
-        return membership.role in {membership.Role.ADMIN, membership.Role.OWNER} or membership.can_manage_devices
+        return (
+            membership.role in {membership.Role.ADMIN, membership.Role.OWNER}
+            or membership.can_manage_devices
+        )
     return True
 
 
 class CanAccessHome(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return user_has_home_access(request.user, obj, write=request.method not in SAFE_METHODS)
+        return user_has_home_access(
+            request.user, obj, write=request.method not in SAFE_METHODS
+        )
 
 
 class CanAccessDevice(BasePermission):
     def has_object_permission(self, request, view, obj: Device):
-        return user_has_home_access(request.user, obj.home, write=request.method not in SAFE_METHODS)
+        return user_has_home_access(
+            request.user, obj.home, write=request.method not in SAFE_METHODS
+        )
 
 
 class CanDeleteDevice(BasePermission):
@@ -37,4 +44,16 @@ class CanDeleteDevice(BasePermission):
 
 class CanAccessRoom(BasePermission):
     def has_object_permission(self, request, view, obj: Room):
-        return user_has_home_access(request.user, obj.home, write=request.method not in SAFE_METHODS)
+        return user_has_home_access(
+            request.user, obj.home, write=request.method not in SAFE_METHODS
+        )
+
+
+class CanAccessGateway(BasePermission):
+    def has_object_permission(self, request, view, obj: Gateway):
+        if obj.home is None:
+            # Unassigned gateways can be seen and claimed by any authenticated user
+            return request.user and request.user.is_authenticated
+        return user_has_home_access(
+            request.user, obj.home, write=request.method not in SAFE_METHODS
+        )

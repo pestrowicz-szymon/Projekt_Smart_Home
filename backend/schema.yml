@@ -1,0 +1,2961 @@
+openapi: 3.0.3
+info:
+  title: Smart Home API
+  version: 1.0.0
+  description: JWT-protected REST API for smart home homes, devices, readings, and
+    commands.
+paths:
+  /api/devices/actions/:
+    get:
+      operationId: devices_actions_list
+      summary: List device actions
+      tags:
+      - device-actions
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceAction'
+          description: ''
+  /api/devices/actions/{id}/:
+    get:
+      operationId: devices_actions_retrieve
+      summary: Get device action
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device action.
+        required: true
+      tags:
+      - device-actions
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceAction'
+          description: ''
+  /api/devices/devices/:
+    get:
+      operationId: devices_devices_list
+      summary: List devices
+      parameters:
+      - in: query
+        name: room_id
+        schema:
+          type: integer
+        description: Filter devices by room id.
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+              examples:
+                FilterByRoom:
+                  value:
+                  - 7
+                  summary: Filter by room
+          description: ''
+    post:
+      operationId: devices_devices_create
+      summary: Create device
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+            examples:
+              CreateDevice:
+                value:
+                  home_id: 1
+                  room_id: 7
+                  name: Thermometer Kitchen
+                  device_type: thermometer
+                  hardware_id: hw-thermo-001
+                  is_active: true
+                  current_state: 21.5
+                  state_payload:
+                    battery: 95
+                summary: Create device
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                DeviceResponse:
+                  value:
+                    id: 31
+                    home_id: 1
+                    room:
+                      id: 7
+                      name: Living Room
+                      description: Main living area
+                    room_id: 7
+                    name: Thermometer Kitchen
+                    device_type: thermometer
+                    hardware_id: hw-thermo-001
+                    status: unknown
+                    is_active: true
+                    current_state: 21.5
+                    state_payload:
+                      battery: 95
+                    certificate_fingerprint: null
+                    last_seen_at: null
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Device response
+          description: ''
+  /api/devices/devices/{id}/:
+    get:
+      operationId: devices_devices_retrieve
+      summary: Get device details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                DeviceResponse:
+                  value:
+                    id: 31
+                    home_id: 1
+                    room:
+                      id: 7
+                      name: Living Room
+                      description: Main living area
+                    room_id: 7
+                    name: Thermometer Kitchen
+                    device_type: thermometer
+                    hardware_id: hw-thermo-001
+                    status: unknown
+                    is_active: true
+                    current_state: 21.5
+                    state_payload:
+                      battery: 95
+                    certificate_fingerprint: null
+                    last_seen_at: null
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Device response
+          description: ''
+    put:
+      operationId: devices_devices_update
+      summary: Update device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+            examples:
+              CreateDevice:
+                value:
+                  home_id: 1
+                  room_id: 7
+                  name: Thermometer Kitchen
+                  device_type: thermometer
+                  hardware_id: hw-thermo-001
+                  is_active: true
+                  current_state: 21.5
+                  state_payload:
+                    battery: 95
+                summary: Create device
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                DeviceResponse:
+                  value:
+                    id: 31
+                    home_id: 1
+                    room:
+                      id: 7
+                      name: Living Room
+                      description: Main living area
+                    room_id: 7
+                    name: Thermometer Kitchen
+                    device_type: thermometer
+                    hardware_id: hw-thermo-001
+                    status: unknown
+                    is_active: true
+                    current_state: 21.5
+                    state_payload:
+                      battery: 95
+                    certificate_fingerprint: null
+                    last_seen_at: null
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Device response
+          description: ''
+    patch:
+      operationId: devices_devices_partial_update
+      summary: Patch device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDeviceRequest'
+            examples:
+              CreateDevice:
+                value:
+                  home_id: 1
+                  room_id: 7
+                  name: Thermometer Kitchen
+                  device_type: thermometer
+                  hardware_id: hw-thermo-001
+                  is_active: true
+                  current_state: 21.5
+                  state_payload:
+                    battery: 95
+                summary: Create device
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDeviceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDeviceRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                DeviceResponse:
+                  value:
+                    id: 31
+                    home_id: 1
+                    room:
+                      id: 7
+                      name: Living Room
+                      description: Main living area
+                    room_id: 7
+                    name: Thermometer Kitchen
+                    device_type: thermometer
+                    hardware_id: hw-thermo-001
+                    status: unknown
+                    is_active: true
+                    current_state: 21.5
+                    state_payload:
+                      battery: 95
+                    certificate_fingerprint: null
+                    last_seen_at: null
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Device response
+          description: ''
+    delete:
+      operationId: devices_devices_destroy
+      summary: Delete device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/devices/devices/{id}/actions/:
+    get:
+      operationId: devices_devices_actions_list
+      summary: List commands or enqueue a new device action
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceAction'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceAction'
+          description: ''
+    post:
+      operationId: devices_devices_actions_create
+      summary: List commands or enqueue a new device action
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCommandCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceCommandCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceCommandCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceAction'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceAction'
+          description: ''
+  /api/devices/devices/{id}/latest-reading/:
+    get:
+      operationId: devices_devices_latest_reading_retrieve
+      summary: Get latest reading for a device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+          description: ''
+        '404':
+          description: No readings found
+  /api/devices/devices/{id}/readings/:
+    get:
+      operationId: devices_devices_readings_list
+      summary: List or create sensor readings for a device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SensorData'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+          description: ''
+    post:
+      operationId: devices_devices_readings_create
+      summary: List or create sensor readings for a device
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this device.
+        required: true
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorDataCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SensorDataCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SensorDataCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SensorData'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+          description: ''
+  /api/devices/events/:
+    get:
+      operationId: devices_events_retrieve
+      description: Connect to this endpoint using EventSource to receive real-time
+        updates for devices in your homes.
+      summary: Stream real-time device events
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            text/event-stream:
+              schema:
+                type: string
+          description: ''
+  /api/devices/gateways/:
+    get:
+      operationId: devices_gateways_list
+      summary: List gateways
+      tags:
+      - gateways
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Gateway'
+          description: ''
+    post:
+      operationId: devices_gateways_create
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gateway'
+          description: ''
+  /api/devices/gateways/{id}/:
+    get:
+      operationId: devices_gateways_retrieve
+      summary: Get gateway details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this gateway.
+        required: true
+      tags:
+      - gateways
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gateway'
+          description: ''
+    put:
+      operationId: devices_gateways_update
+      summary: Update gateway
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this gateway.
+        required: true
+      tags:
+      - gateways
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GatewayRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gateway'
+          description: ''
+    patch:
+      operationId: devices_gateways_partial_update
+      summary: Patch gateway
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this gateway.
+        required: true
+      tags:
+      - gateways
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGatewayRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGatewayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGatewayRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gateway'
+          description: ''
+    delete:
+      operationId: devices_gateways_destroy
+      summary: Delete gateway
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this gateway.
+        required: true
+      tags:
+      - gateways
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/devices/gateways/claim/:
+    post:
+      operationId: devices_gateways_claim_create
+      summary: Claim an unassigned gateway
+      tags:
+      - gateways
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gateway'
+          description: ''
+  /api/devices/homes/:
+    get:
+      operationId: devices_homes_list
+      summary: List homes
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Home'
+          description: ''
+    post:
+      operationId: devices_homes_create
+      summary: Create home
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+          description: ''
+  /api/devices/homes/{id}/:
+    get:
+      operationId: devices_homes_retrieve
+      summary: Get home details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+          description: ''
+    put:
+      operationId: devices_homes_update
+      summary: Update home
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HomeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+          description: ''
+    patch:
+      operationId: devices_homes_partial_update
+      summary: Patch home
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+          description: ''
+    delete:
+      operationId: devices_homes_destroy
+      summary: Delete home
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/devices/homes/{id}/devices/:
+    get:
+      operationId: devices_homes_devices_list
+      summary: List devices for a home
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      - in: query
+        name: room_id
+        schema:
+          type: integer
+        description: Filter devices by room id.
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+              examples:
+                FilterByRoom:
+                  value:
+                  - 7
+                  summary: Filter by room
+          description: ''
+  /api/devices/homes/{id}/members/:
+    get:
+      operationId: devices_homes_members_list
+      summary: List or add home members
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                  - id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+    post:
+      operationId: devices_homes_members_create
+      summary: List or add home members
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+            examples:
+              AddHomeMember:
+                value:
+                  user_id: 12
+                  role: member
+                  can_manage_devices: false
+                summary: Add home member
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                  - id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+  /api/devices/homes/{id}/members/{member_id}/:
+    get:
+      operationId: devices_homes_members_retrieve
+      summary: Get, update or delete a home member
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        description: The ID of the home member record.
+        required: true
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '204':
+          description: No response body
+    put:
+      operationId: devices_homes_members_update
+      summary: Get, update or delete a home member
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        description: The ID of the home member record.
+        required: true
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+            examples:
+              AddHomeMember:
+                value:
+                  user_id: 12
+                  role: member
+                  can_manage_devices: false
+                summary: Add home member
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HomeMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '204':
+          description: No response body
+    patch:
+      operationId: devices_homes_members_partial_update
+      summary: Get, update or delete a home member
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        description: The ID of the home member record.
+        required: true
+      tags:
+      - homes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMemberRequest'
+            examples:
+              AddHomeMember:
+                value:
+                  user_id: 12
+                  role: member
+                  can_manage_devices: false
+                summary: Add home member
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMemberRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '204':
+          description: No response body
+    delete:
+      operationId: devices_homes_members_destroy
+      summary: Get, update or delete a home member
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this home.
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        description: The ID of the home member record.
+        required: true
+      tags:
+      - homes
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMember'
+              examples:
+                HomeMemberResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Home member response
+          description: ''
+        '204':
+          description: No response body
+  /api/devices/readings/:
+    get:
+      operationId: devices_readings_list
+      summary: List sensor readings
+      tags:
+      - readings
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SensorData'
+          description: ''
+  /api/devices/readings/{id}/:
+    get:
+      operationId: devices_readings_retrieve
+      summary: Get sensor reading
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sensor data.
+        required: true
+      tags:
+      - readings
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+          description: ''
+  /api/devices/rooms/:
+    get:
+      operationId: devices_rooms_list
+      summary: List rooms
+      parameters:
+      - in: query
+        name: home_id
+        schema:
+          type: integer
+        description: Filter rooms by home id.
+      tags:
+      - rooms
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Room'
+              examples:
+                RoomResponse:
+                  value:
+                  - id: 7
+                    home: 1
+                    name: Living Room
+                    description: Main living area
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Room response
+          description: ''
+    post:
+      operationId: devices_rooms_create
+      summary: Create room
+      tags:
+      - rooms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+            examples:
+              CreateRoom:
+                value:
+                  home_id: 1
+                  name: Living Room
+                  description: Main living area
+                summary: Create room
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              examples:
+                RoomResponse:
+                  value:
+                    id: 7
+                    home: 1
+                    name: Living Room
+                    description: Main living area
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Room response
+          description: ''
+  /api/devices/rooms/{id}/:
+    get:
+      operationId: devices_rooms_retrieve
+      summary: Get room details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this room.
+        required: true
+      tags:
+      - rooms
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              examples:
+                RoomResponse:
+                  value:
+                    id: 7
+                    home: 1
+                    name: Living Room
+                    description: Main living area
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Room response
+          description: ''
+    put:
+      operationId: devices_rooms_update
+      summary: Update room
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this room.
+        required: true
+      tags:
+      - rooms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+            examples:
+              CreateRoom:
+                value:
+                  home_id: 1
+                  name: Living Room
+                  description: Main living area
+                summary: Create room
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              examples:
+                RoomResponse:
+                  value:
+                    id: 7
+                    home: 1
+                    name: Living Room
+                    description: Main living area
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Room response
+          description: ''
+    patch:
+      operationId: devices_rooms_partial_update
+      summary: Patch room
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this room.
+        required: true
+      tags:
+      - rooms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+            examples:
+              CreateRoom:
+                value:
+                  home_id: 1
+                  name: Living Room
+                  description: Main living area
+                summary: Create room
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              examples:
+                RoomResponse:
+                  value:
+                    id: 7
+                    home: 1
+                    name: Living Room
+                    description: Main living area
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Room response
+          description: ''
+    delete:
+      operationId: devices_rooms_destroy
+      summary: Delete room
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this room.
+        required: true
+      tags:
+      - rooms
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/invites/homes/{home_id}/invites/:
+    get:
+      operationId: invites_homes_invites_list
+      summary: List or create home invites
+      parameters:
+      - in: path
+        name: home_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - invites
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HomeInvite'
+              examples:
+                CreateHomeInvite:
+                  value:
+                  - id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    code: d4f9e1f0d7d64ab8c2fcbf1c0f1a90bb
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Create home invite
+                ListHomeInvites:
+                  value:
+                  - - id: 5
+                      home: 1
+                      created_by:
+                        id: 7
+                        first_name: Anna
+                        last_name: Nowak
+                      expires_at: '2026-05-24T10:30:00Z'
+                      used_by: null
+                      used_at: null
+                      revoked_at: null
+                      status: active
+                      created_at: '2026-05-24T10:00:00Z'
+                      updated_at: '2026-05-24T10:00:00Z'
+                  summary: List home invites
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeInvite'
+              examples:
+                CreateHomeInvite:
+                  value:
+                    id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    code: d4f9e1f0d7d64ab8c2fcbf1c0f1a90bb
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Create home invite
+                ListHomeInvites:
+                  value:
+                  - id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: List home invites
+          description: ''
+    post:
+      operationId: invites_homes_invites_create
+      summary: List or create home invites
+      parameters:
+      - in: path
+        name: home_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - invites
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HomeInvite'
+              examples:
+                CreateHomeInvite:
+                  value:
+                  - id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    code: d4f9e1f0d7d64ab8c2fcbf1c0f1a90bb
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Create home invite
+                ListHomeInvites:
+                  value:
+                  - - id: 5
+                      home: 1
+                      created_by:
+                        id: 7
+                        first_name: Anna
+                        last_name: Nowak
+                      expires_at: '2026-05-24T10:30:00Z'
+                      used_by: null
+                      used_at: null
+                      revoked_at: null
+                      status: active
+                      created_at: '2026-05-24T10:00:00Z'
+                      updated_at: '2026-05-24T10:00:00Z'
+                  summary: List home invites
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeInvite'
+              examples:
+                CreateHomeInvite:
+                  value:
+                    id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    code: d4f9e1f0d7d64ab8c2fcbf1c0f1a90bb
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: Create home invite
+                ListHomeInvites:
+                  value:
+                  - id: 5
+                    home: 1
+                    created_by:
+                      id: 7
+                      first_name: Anna
+                      last_name: Nowak
+                    expires_at: '2026-05-24T10:30:00Z'
+                    used_by: null
+                    used_at: null
+                    revoked_at: null
+                    status: active
+                    created_at: '2026-05-24T10:00:00Z'
+                    updated_at: '2026-05-24T10:00:00Z'
+                  summary: List home invites
+          description: ''
+  /api/invites/invites/redeem/:
+    post:
+      operationId: invites_invites_redeem_create
+      description: 'Use this endpoint after logging in. Send a POST request with a
+        JSON body like `{"code": "<invite_code>"}`. The code is one-time use; if it
+        is valid, the current user is added to the target home and the response contains
+        the created HomeMember record.'
+      summary: Redeem a home invitation code
+      tags:
+      - invites
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeInviteRedeemRequest'
+            examples:
+              RedeemInvite:
+                value:
+                  code: d4f9e1f0d7d64ab8c2fcbf1c0f1a90bb
+                summary: Redeem invite
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HomeInviteRedeemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HomeInviteRedeemRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMemberInvite'
+              examples:
+                RedeemInviteResponse:
+                  value:
+                    id: 21
+                    home: 1
+                    user:
+                      id: 12
+                      first_name: Jan
+                      last_name: Kowalski
+                    role: member
+                    can_manage_devices: false
+                    created_at: '2026-05-24T10:00:00Z'
+                  summary: Redeem invite response
+          description: ''
+        '400':
+          description: The code is missing, invalid, expired, or already used.
+        '401':
+          description: Authentication required.
+  /api/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/users/login/:
+    post:
+      operationId: users_login_create
+      description: Authenticates a user and returns JWT tokens. Supports MFA if enabled.
+      summary: Login
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFARequiredResponse'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/logout/:
+    post:
+      operationId: users_logout_create
+      description: Logout endpoint (blacklist the refresh token)
+      summary: Logout
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/me/:
+    get:
+      operationId: users_me_retrieve
+      description: Get current authenticated user info
+      summary: Get current user info
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/memberships/{membership_id}/:
+    patch:
+      operationId: users_memberships_partial_update
+      description: Update a home membership, e.g. enable device management.
+      summary: Update home membership
+      parameters:
+      - in: path
+        name: membership_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMembershipUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMembershipUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHomeMembershipUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeMembership'
+          description: ''
+  /api/users/mfa/disable/:
+    post:
+      operationId: users_mfa_disable_create
+      summary: Disable MFA
+      tags:
+      - mfa
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFADisableSuccess'
+          description: ''
+  /api/users/mfa/setup/:
+    post:
+      operationId: users_mfa_setup_create
+      summary: Setup MFA
+      tags:
+      - mfa
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetupResponse'
+          description: ''
+  /api/users/mfa/status/:
+    get:
+      operationId: users_mfa_status_retrieve
+      summary: Get MFA status
+      tags:
+      - mfa
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAStatusResponse'
+          description: ''
+  /api/users/mfa/verify/:
+    post:
+      operationId: users_mfa_verify_create
+      summary: Verify MFA setup
+      tags:
+      - mfa
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetupVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MFASetupVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MFASetupVerifyRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAStatusResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/register/:
+    post:
+      operationId: users_register_create
+      description: Register a new user
+      summary: Register a new user
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterSuccess'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        gateway:
+          allOf:
+          - $ref: '#/components/schemas/Gateway'
+          readOnly: true
+        room:
+          allOf:
+          - $ref: '#/components/schemas/RoomSummary'
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        device_type:
+          $ref: '#/components/schemas/DeviceTypeEnum'
+        hardware_id:
+          type: string
+          maxLength: 100
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DeviceStatus'
+          readOnly: true
+        is_active:
+          type: boolean
+        current_state:
+          type: number
+          format: double
+        state_payload: {}
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - device_type
+      - gateway
+      - hardware_id
+      - home
+      - id
+      - last_seen_at
+      - name
+      - room
+      - status
+      - updated_at
+    DeviceAction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        device:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/PublicUser'
+          readOnly: true
+        action_type:
+          type: string
+          maxLength: 50
+        payload: {}
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DeviceActionStatus'
+          readOnly: true
+        correlation_id:
+          type: string
+          readOnly: true
+        source:
+          type: string
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action_type
+      - correlation_id
+      - device
+      - id
+      - source
+      - status
+      - timestamp
+      - user
+    DeviceActionStatus:
+      enum:
+      - pending
+      - sent
+      - acked
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `sent` - Sent
+        * `acked` - Acked
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+    DeviceCommandCreateRequest:
+      type: object
+      properties:
+        action_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+        payload: {}
+      required:
+      - action_type
+    DeviceRequest:
+      type: object
+      properties:
+        home_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        gateway_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        room_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        device_type:
+          $ref: '#/components/schemas/DeviceTypeEnum'
+        hardware_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_active:
+          type: boolean
+        current_state:
+          type: number
+          format: double
+        state_payload: {}
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+      required:
+      - device_type
+      - hardware_id
+      - name
+    DeviceStatus:
+      enum:
+      - unknown
+      - online
+      - offline
+      type: string
+      description: |-
+        * `unknown` - Unknown
+        * `online` - Online
+        * `offline` - Offline
+    DeviceTypeEnum:
+      enum:
+      - thermometer
+      - lock
+      - light
+      - smoke_detector
+      - generic_sensor
+      - actuator
+      type: string
+      description: |-
+        * `thermometer` - Termometr
+        * `lock` - Zamek elektroniczny
+        * `light` - Oświetlenie
+        * `smoke_detector` - Czujnik dymu
+        * `generic_sensor` - Czujnik ogólny
+        * `actuator` - Aktuator
+    Gateway:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        hardware_id:
+          type: string
+          maxLength: 100
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DeviceStatus'
+          readOnly: true
+        is_active:
+          type: boolean
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - hardware_id
+      - home
+      - id
+      - last_seen_at
+      - status
+      - updated_at
+    GatewayRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        hardware_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_active:
+          type: boolean
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+      required:
+      - hardware_id
+    Home:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/PublicUser'
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeMember'
+          readOnly: true
+        rooms:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        devices_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - devices_count
+      - id
+      - members
+      - name
+      - owner
+      - rooms
+      - updated_at
+    HomeInvite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/PublicUserInvite'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        used_by:
+          allOf:
+          - $ref: '#/components/schemas/PublicUserInvite'
+          readOnly: true
+        used_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        code_hash:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code_hash
+      - created_at
+      - created_by
+      - expires_at
+      - home
+      - id
+      - revoked_at
+      - status
+      - updated_at
+      - used_at
+      - used_by
+    HomeInviteRedeemRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: Invitation code from the invite link or QR code. Send it in
+            POST /api/invites/invites/redeem/.
+          maxLength: 64
+      required:
+      - code
+    HomeMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/PublicUser'
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        can_manage_devices:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - home
+      - id
+      - user
+    HomeMemberInvite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/PublicUserInvite'
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        can_manage_devices:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - home
+      - id
+      - user
+    HomeMemberRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          writeOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        can_manage_devices:
+          type: boolean
+      required:
+      - user_id
+    HomeMembership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        can_manage_devices:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - can_manage_devices
+      - created_at
+      - home
+      - id
+      - role
+    HomeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+      required:
+      - name
+    LoginRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        mfa_token:
+          type: string
+          format: uuid
+        mfa_code:
+          type: string
+          minLength: 1
+          maxLength: 8
+    LoginResponse:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - access
+      - refresh
+      - user
+    LogoutRequestRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    LogoutSuccess:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    MFADisableSuccess:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    MFARequiredResponse:
+      type: object
+      properties:
+        mfa_required:
+          type: boolean
+          default: true
+        mfa_token:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - expires_at
+      - mfa_token
+      - user
+    MFASetupResponse:
+      type: object
+      properties:
+        mfa_enabled:
+          type: boolean
+        secret:
+          type: string
+        otpauth_uri:
+          type: string
+      required:
+      - mfa_enabled
+      - otpauth_uri
+      - secret
+    MFASetupVerifyRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 8
+      required:
+      - code
+    MFAStatusResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required:
+      - enabled
+    PatchedDeviceRequest:
+      type: object
+      properties:
+        home_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        gateway_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        room_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        device_type:
+          $ref: '#/components/schemas/DeviceTypeEnum'
+        hardware_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_active:
+          type: boolean
+        current_state:
+          type: number
+          format: double
+        state_payload: {}
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+    PatchedGatewayRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        hardware_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_active:
+          type: boolean
+        certificate_fingerprint:
+          type: string
+          nullable: true
+          maxLength: 128
+    PatchedHomeMemberRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          writeOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        can_manage_devices:
+          type: boolean
+    PatchedHomeMembershipUpdateRequest:
+      type: object
+      properties:
+        can_manage_devices:
+          type: boolean
+    PatchedHomeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+    PatchedRoomRequest:
+      type: object
+      properties:
+        home_id:
+          type: integer
+          writeOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+    PublicUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - id
+    PublicUserInvite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - id
+    PublicUserRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 8
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - password
+      - password2
+      - username
+    RegisterSuccess:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `member` - Member
+        * `viewer` - Viewer
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        home:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - home
+      - id
+      - name
+      - updated_at
+    RoomRequest:
+      type: object
+      properties:
+        home_id:
+          type: integer
+          writeOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+      required:
+      - home_id
+      - name
+    RoomSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+      required:
+      - id
+      - name
+    RoomSummaryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+      required:
+      - name
+    SensorData:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        device:
+          type: integer
+          readOnly: true
+        device_name:
+          type: string
+          readOnly: true
+        metric_name:
+          type: string
+          maxLength: 50
+        value:
+          type: number
+          format: double
+          nullable: true
+        unit:
+          type: string
+          maxLength: 20
+        payload: {}
+        source:
+          type: string
+          maxLength: 30
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - device
+      - device_name
+      - id
+      - timestamp
+    SensorDataCreateRequest:
+      type: object
+      properties:
+        metric_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        value:
+          type: number
+          format: double
+          nullable: true
+        unit:
+          type: string
+          maxLength: 20
+        payload: {}
+      required:
+      - metric_name
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        home_memberships:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        mfa_enabled:
+          type: boolean
+          readOnly: true
+      required:
+      - home_memberships
+      - id
+      - mfa_enabled
+      - username
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

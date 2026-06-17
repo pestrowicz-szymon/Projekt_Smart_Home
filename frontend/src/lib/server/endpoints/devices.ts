@@ -34,6 +34,29 @@ export function deleteDevice(fetch: FetchFn, token: string, id: number) {
 	return apiFetch<null>(fetch, `/api/devices/devices/${id}/`, { method: 'DELETE', token });
 }
 
+export function listGateways(fetch: FetchFn, token: string) {
+	log.debug('Fetching list of gateways');
+	return apiFetch<any[]>(fetch, '/api/devices/gateways/', { token });
+}
+
+export function claimGateway(
+	fetch: FetchFn,
+	token: string,
+	hardware_id: string,
+	home_id: number,
+	pairing_code: string
+) {
+	log.debug(
+		{ hardware_id, home_id },
+		`Claiming gateway ${hardware_id} to home ${home_id} with PIN`
+	);
+	return apiFetch<any>(fetch, `/api/devices/gateways/claim/`, {
+		method: 'POST',
+		body: { hardware_id, home_id, pairing_code },
+		token
+	});
+}
+
 export function sendDeviceAction(
 	fetch: FetchFn,
 	token: string,

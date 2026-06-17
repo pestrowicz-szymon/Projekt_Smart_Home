@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
-from .models import Device, DeviceAction, Home, HomeMember, Room, SensorData
+from .models import Device, DeviceAction, Gateway, Home, HomeMember, Room, SensorData
 from .permissions import user_has_home_access
 
 
@@ -10,6 +10,33 @@ class PublicUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "first_name", "last_name")
+
+
+class GatewaySerializer(serializers.ModelSerializer):
+    home = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Gateway
+        fields = (
+            "id",
+            "home",
+            "name",
+            "hardware_id",
+            "status",
+            "is_active",
+            "certificate_fingerprint",
+            "last_seen_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "home",
+            "status",
+            "last_seen_at",
+            "created_at",
+            "updated_at",
+        )
 
 
 class HomeMemberSerializer(serializers.ModelSerializer):
@@ -74,10 +101,10 @@ class HomeSerializer(serializers.ModelSerializer):
             "rooms",
         )
 
-    def get_rooms(self, obj):
+    def get_rooms(self, obj) -> list[dict]:
         return RoomSerializer(obj.rooms.all(), many=True).data
 
-    def get_devices_count(self, obj):
+    def get_devices_count(self, obj) -> int:
         return obj.devices.count()
 
 
@@ -125,7 +152,19 @@ class RoomSummarySerializer(serializers.ModelSerializer):
 class DeviceSerializer(serializers.ModelSerializer):
     home = serializers.PrimaryKeyRelatedField(read_only=True)
     home_id = serializers.PrimaryKeyRelatedField(
-        source="home", queryset=Home.objects.all(), write_only=True
+        source="home",
+        queryset=Home.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    gateway = GatewaySerializer(read_only=True)
+    gateway_id = serializers.PrimaryKeyRelatedField(
+        source="gateway",
+        queryset=Gateway.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
     )
     room = RoomSummarySerializer(read_only=True)
     room_id = serializers.PrimaryKeyRelatedField(
@@ -142,6 +181,8 @@ class DeviceSerializer(serializers.ModelSerializer):
             "id",
             "home",
             "home_id",
+            "gateway",
+            "gateway_id",
             "room",
             "room_id",
             "name",
@@ -159,6 +200,7 @@ class DeviceSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "home",
+            "gateway",
             "room",
             "status",
             "last_seen_at",
@@ -178,6 +220,7 @@ class DeviceSerializer(serializers.ModelSerializer):
                 {"room_id": "Selected room does not belong to this home."}
             )
 
+        # Skip permission checks for internal calls (like from MQTT bridge) if request is None
         if request and home and not request.user.is_superuser:
             if home.owner_id != request.user.id:
                 membership = home.memberships.filter(user=request.user).first()
