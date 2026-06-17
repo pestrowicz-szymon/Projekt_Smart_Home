@@ -4,9 +4,10 @@ import { logout } from '$lib/server/endpoints/auth';
 
 export const POST: RequestHandler = async ({ cookies, fetch }) => {
 	const token = cookies.get('session');
-	if (token) {
+	const refresh = cookies.get('refresh');
+	if (token && refresh) {
 		try {
-			await logout(fetch, token);
+			await logout(fetch, token, refresh);
 		} catch {
 			// non-fatal: clear the cookie below regardless
 		}

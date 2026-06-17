@@ -16,12 +16,18 @@ services:
     mosquitto:
         image: eclipse-mosquitto:2
         ports:
-            - "1883:1883"
             - "8883:8883"
         volumes:
             - ./mosquitto/config:/mosquitto/config
             - ./mosquitto/data:/mosquitto/data
             - ./mosquitto/log:/mosquitto/log
+
+    # frontend:
+    #   build:
+    #     context: ./frontend
+    #     dockerfile: ./frontend/Containerfile
+    #   ports:
+    #     - "5173:5173"
 
 volumes:
     smart_home_postgres_volume:

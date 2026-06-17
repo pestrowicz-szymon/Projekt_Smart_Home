@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import toast from 'svelte-french-toast';
 	import { fade } from 'svelte/transition';
+	import { deviceStore } from '$lib/stores/devices.svelte';
 
 	let { device }: { device: Device } = $props();
 	let loading = $state(false);
@@ -23,7 +24,7 @@
 					toast.error((result.data?.error as string) || 'Action failed');
 				} else if (result.type === 'success') {
 					const targetState = actionType === 'turn_on' ? 1 : 0;
-					device.current_state = targetState;
+					deviceStore.updateDeviceState(device.id, { current_state: targetState });
 				}
 			};
 		}}

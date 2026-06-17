@@ -42,13 +42,15 @@ export const actions: Actions = {
 				httpOnly: true,
 				sameSite: 'lax',
 				path: '/',
-				maxAge: ACCESS_MAX_AGE
+				maxAge: ACCESS_MAX_AGE,
+				secure: process.env.NODE_ENV === 'production'
 			});
 			cookies.set('refresh', refresh, {
 				httpOnly: true,
 				sameSite: 'lax',
 				path: '/',
-				maxAge: REFRESH_MAX_AGE
+				maxAge: REFRESH_MAX_AGE,
+				secure: process.env.NODE_ENV === 'production'
 			});
 			throw redirect(303, '/h');
 		} catch (err) {

@@ -8,7 +8,11 @@
     },
     {
         "label": "Run backend",
-        "command": "cd $ZED_WORKTREE_ROOT/backend && uv run manage.py runserver"
+        "command": "cd $ZED_WORKTREE_ROOT/backend && uv run uvicorn core.asgi:application --reload --port 8000"
+    },
+    {
+        "label": "Run sims",
+        "command": "cd $ZED_WORKTREE_ROOT/simulations && uv run simulator.py"
     },
     {
         "label": "Sync svelte-kit types",
