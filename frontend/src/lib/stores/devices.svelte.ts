@@ -89,18 +89,24 @@ class DeviceStore {
 
 	private handleEvent(event: DeviceEvent) {
 		if (event.type === 'device_update') {
-			const index = this.devices.findIndex((d) => d.id === event.device_id);
-			if (index !== -1) {
-				this.devices[index] = {
-					...this.devices[index],
-					current_state: event.current_state,
-					state_payload: event.state_payload,
-					last_seen_at: event.last_seen_at,
-					status: event.status as Device['status']
-				};
-			}
+			this.updateDeviceState(event.device_id, {
+				current_state: event.current_state,
+				state_payload: event.state_payload,
+				last_seen_at: event.last_seen_at,
+				status: event.status as Device['status']
+			});
 		} else if (event.type === 'action_acked' || event.type === 'action_failed') {
 			console.log(`Action ${event.type}:`, event.correlation_id);
+		}
+	}
+
+	updateDeviceState(deviceId: number, updates: Partial<Device>) {
+		const index = this.devices.findIndex((d) => d.id === deviceId);
+		if (index !== -1) {
+			this.devices[index] = {
+				...this.devices[index],
+				...updates
+			};
 		}
 	}
 }
