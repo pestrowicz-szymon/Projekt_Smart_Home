@@ -4,7 +4,7 @@ import logging
 
 import psycopg
 import psycopg.sql
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -386,8 +386,10 @@ class HomeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Home.objects.select_related("owner").prefetch_related(
-            "memberships__user", "devices", "rooms"
+        queryset = (
+            Home.objects.select_related("owner")
+            .prefetch_related("memberships__user", "rooms")
+            .annotate(devices_count=Count("devices"))
         )
         if user.is_superuser:
             return queryset
@@ -598,9 +600,9 @@ class DeviceViewSet(viewsets.ModelViewSet):
         user = self.request.user
         # Optimization: Use select_related for 1-to-1 or Many-to-1 relations
         # This joins the tables in SQL instead of doing separate queries
-        queryset = Device.objects.select_related(
-            "home", "room", "home__owner"
-        ).prefetch_related("readings", "actions")
+        queryset = Device.objects.select_related("home", "room", "home__owner")
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related("readings", "actions")
         room_id = self.request.query_params.get("room_id")
         if room_id:
             queryset = queryset.filter(room_id=room_id)

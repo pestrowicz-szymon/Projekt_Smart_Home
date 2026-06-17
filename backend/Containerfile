@@ -13,10 +13,13 @@ RUN apt-get update && apt-get install -y \
 
 # Install dependencies using uv
 COPY pyproject.toml uv.lock ./
+
 RUN uv sync --frozen --no-dev
 
 COPY . .
 
-# Default command is to run the web server,
-# but this image will be overridden by services in compose.yml
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+
 CMD ["uv", "run", "uvicorn", "core.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

@@ -80,21 +80,20 @@ def record_sensor_reading(
         source=source,
     )
 
-    device.last_seen_at = timezone.now()
-    device.status = Device.Status.ONLINE
+    update_data = {
+        "last_seen_at": timezone.now(),
+        "status": Device.Status.ONLINE,
+        "updated_at": timezone.now(),
+    }
     if value is not None:
-        device.current_state = value
+        update_data["current_state"] = value
     if payload:
-        device.state_payload = payload
-    device.save(
-        update_fields=[
-            "last_seen_at",
-            "status",
-            "current_state",
-            "state_payload",
-            "updated_at",
-        ]
-    )
+        update_data["state_payload"] = payload
+
+    Device.objects.filter(pk=device.pk).update(**update_data)
+
+    for k, v in update_data.items():
+        setattr(device, k, v)
 
     # Notify subscribers
     notify_device_update(

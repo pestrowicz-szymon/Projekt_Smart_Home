@@ -1,9 +1,28 @@
-FROM oven/bun:latest
+FROM oven/bun:latest AS builder
 
-COPY package.json ./
-COPY bun.lockb ./
-COPY src ./
+WORKDIR /app
 
-RUN bun install
+COPY package.json bun.lockb* ./
 
-RUN bun
+RUN bun install --frozen-lockfile
+
+COPY . .
+
+RUN bun run build
+
+RUN rm -rf node_modules && bun install --production --frozen-lockfile
+
+
+FROM node:22-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+
+CMD ["node", "build"]

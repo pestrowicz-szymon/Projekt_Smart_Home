@@ -1,4 +1,4 @@
-import { API_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies }) => {
@@ -8,7 +8,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		return new Response('Unauthorized', { status: 401 });
 	}
 
-	const url = `${API_URL}/api/devices/events/`;
+	const url = `${env.API_URL}/api/devices/events/`;
 	console.log(`[SSE Proxy] Connecting to: ${url}`);
 
 	try {

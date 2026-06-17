@@ -11,22 +11,6 @@ import paho.mqtt.client as mqtt
 from config import get_devices
 from models import DeviceSimulator
 
-
-# Simple .env loader
-def load_env(file_path=".env"):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    if "=" in line:
-                        key, value = line.split("=", 1)
-                        os.environ[key.strip()] = value.strip()
-
-
-# Load configuration
-load_env()
-
 GATEWAY_CN = os.getenv("GATEWAY_CN", "gateway-001")
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "5"))
 
@@ -68,8 +52,8 @@ class SmartGatewaySimulator:
                 return str(Path(__file__).resolve().parent / path)
 
             ca_certs = resolve(os.getenv("MQTT_CA_CERTS"))
-            certfile = resolve(os.getenv("MQTT_CLIENT_CERT"))
-            keyfile = resolve(os.getenv("MQTT_CLIENT_KEY"))
+            certfile = resolve(os.getenv("MQTT_GATEWAY_CERT"))
+            keyfile = resolve(os.getenv("MQTT_GATEWAY_KEY"))
 
             logger.info(f"Using mTLS. Cert: {certfile}")
 

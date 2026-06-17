@@ -11,7 +11,7 @@ openssl req -x509 -new -nodes -key "$CERT_DIR/ca.key" -sha256 -days 3650 -out "$
 echo "Generating Server Certificate..."
 openssl genrsa -out "$CERT_DIR/server.key" 2048
 openssl req -new -key "$CERT_DIR/server.key" -out "$CERT_DIR/server.csr" -subj "/CN=mosquitto"
-openssl x509 -req -in "$CERT_DIR/server.csr" -CA "$CERT_DIR/ca.crt" -CAkey "$CERT_DIR/ca.key" -CAcreateserial -out "$CERT_DIR/server.crt" -days 3650 -sha256
+openssl x509 -req -in "$CERT_DIR/server.csr" -CA "$CERT_DIR/ca.crt" -CAkey "$CERT_DIR/ca.key" -CAcreateserial -out "$CERT_DIR/server.crt" -days 3650 -sha256 -extfile <(printf "subjectAltName=DNS:localhost,DNS:mosquitto,IP:127.0.0.1")
 
 echo "Generating Backend Certificate..."
 openssl genrsa -out "$CERT_DIR/backend.key" 2048
