@@ -1,4 +1,4 @@
-import { API_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { createLogger } from '../logger';
 
 const log = createLogger('api-client');
@@ -26,8 +26,12 @@ export async function apiFetch<T>(
 	path: string,
 	{ method = 'GET', body, token }: RequestOptions = {}
 ): Promise<T> {
+	if (!env.API_URL) {
+		throw new Error('CRITICAL: API_URL environment variable is not defined.');
+	}
+
 	const startTime = Date.now();
-	const url = `${API_URL}${path}`;
+	const url = `${env.API_URL}${path}`;
 
 	const headers: Record<string, string> = {};
 	if (body !== undefined) headers['Content-Type'] = 'application/json';

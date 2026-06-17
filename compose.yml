@@ -8,7 +8,13 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - smart_home_postgres_volume:/var/lib/postgresql
+            - ./shdb:/var/lib/postgresql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
     mosquitto:
         image: eclipse-mosquitto:2
@@ -31,8 +37,10 @@ services:
         ports:
             - "8000:8000"
         depends_on:
-            - db
-            - mosquitto
+            db:
+                condition: service_healthy
+            mosquitto:
+                condition: service_started
         restart: always
 
     mqtt-bridge:
@@ -42,6 +50,8 @@ services:
         command: uv run python -u manage.py run_mqtt_bridge
         env_file:
             - .env.prod
+        environment:
+            - MQTT_CLIENT_ID=mqtt-bridge
         volumes:
             - ./certs:/app/certs:ro
         depends_on:
@@ -63,12 +73,25 @@ services:
             - mosquitto
         restart: always
 
-    # frontend:
-    #   build:
-    #     context: ./frontend
-    #     dockerfile: ./frontend/Containerfile
-    #   ports:
-    #     - "433:5173"
+    gateway:
+        build:
+            context: ./simulations
+            dockerfile: Containerfile
+        volumes:
+            - ./certs:/app/certs:ro
+        env_file:
+            - .env.prod
+
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Containerfile
+        env_file:
+            - .env.prod
+        environment:
+            - ORIGIN=http://localhost:3000
+        ports:
+            - "3000:3000"
 
 volumes:
     smart_home_postgres_volume:

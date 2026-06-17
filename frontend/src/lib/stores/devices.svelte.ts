@@ -30,6 +30,7 @@ export type DeviceEvent =
 	  };
 
 class DeviceStore {
+	private deviceMap = new Map<number, Device>();
 	devices = $state<Device[]>([]);
 	status = $state<'connected' | 'disconnected' | 'connecting'>('disconnected');
 
@@ -38,6 +39,11 @@ class DeviceStore {
 
 	init(initialDevices: Device[], homeId: number) {
 		this.devices = initialDevices;
+		this.deviceMap.clear();
+		for (const dev of this.devices) {
+			this.deviceMap.set(dev.id, dev);
+		}
+
 		const newHomeId = homeId;
 		if (browser) {
 			if (this.status === 'disconnected') {
@@ -52,12 +58,17 @@ class DeviceStore {
 		}
 	}
 
-	private disconnect() {
+	disconnect() {
 		if (this.eventSource) {
 			this.eventSource.close();
 			this.eventSource = null;
 		}
 		this.status = 'disconnected';
+	}
+
+	cleanup() {
+		this.disconnect();
+		this.currentHomeId = null;
 	}
 
 	private connect() {
@@ -85,8 +96,12 @@ class DeviceStore {
 					this.eventSource.close();
 					this.eventSource = null;
 				}
-				// Reconnect after 5 seconds
-				setTimeout(() => this.connect(), 5000);
+				// Reconnect after 5 seconds if still expected to be connected
+				setTimeout(() => {
+					if (this.currentHomeId !== null) {
+						this.connect();
+					}
+				}, 5000);
 			}
 		};
 	}
@@ -107,21 +122,19 @@ class DeviceStore {
 	}
 
 	updateDeviceState(deviceId: number, updates: Partial<Device>) {
-		const index = this.devices.findIndex((d) => d.id === deviceId);
-		if (index !== -1) {
-			this.devices[index] = {
-				...this.devices[index],
-				...updates
-			};
+		const device = this.deviceMap.get(deviceId);
+		if (device) {
+			Object.assign(device, updates);
 		}
 	}
 
 	addOrUpdateDevice(device: Device) {
-		const index = this.devices.findIndex((d) => d.id === device.id);
-		if (index === -1) {
-			this.devices = [...this.devices, device];
+		const existing = this.deviceMap.get(device.id);
+		if (!existing) {
+			this.devices.push(device);
+			this.deviceMap.set(device.id, device);
 		} else {
-			this.devices[index] = device;
+			Object.assign(existing, device);
 		}
 	}
 }

@@ -105,7 +105,7 @@ class HomeSerializer(serializers.ModelSerializer):
         return RoomSerializer(obj.rooms.all(), many=True).data
 
     def get_devices_count(self, obj) -> int:
-        return obj.devices.count()
+        return getattr(obj, "devices_count", obj.devices.count())
 
 
 class RoomSerializer(serializers.ModelSerializer):

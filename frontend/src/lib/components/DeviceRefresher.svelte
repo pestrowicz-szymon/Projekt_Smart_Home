@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { deviceStore } from '$lib/stores/devices.svelte';
 	import type { Device } from '$lib/types/device';
 
@@ -15,6 +15,10 @@
 		if (enabled) {
 			deviceStore.init(initialDevices, homeId);
 		}
+	});
+
+	onDestroy(() => {
+		deviceStore.cleanup();
 	});
 </script>
 
